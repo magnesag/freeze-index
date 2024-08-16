@@ -49,6 +49,10 @@ class TestFreezingFunctions(ut.TestCase):
     def tearDown(self):
         pltlib.close("all")
 
+    @staticmethod
+    def standardize(x):
+        return (x - np.nanmean(x)) / np.nanstd(x)
+
     def mark_freezing_region_on_axes(self, axs: pltlib.Axes):
         axs.axvspan(
             self.t_start_freeze,
@@ -112,13 +116,13 @@ class TestFreezingFunctions(ut.TestCase):
         for w, (t, fi) in zip(test_wins, fis):
             axs.plot(
                 t * (self.t[-1] - self.t[0]) + self.t[0],
-                frz.apply_moore_fi_scaling(fi),
+                self.standardize(frz.apply_moore_fi_scaling(fi)),
                 label=f"W = {w}",
             )
 
         axs.grid(True)
         axs.set(xlabel="Time [s]", ylabel="FI [-]")
-        axs.legend(loc="upper right", bbox_to_anchor=(1, 1))
+        axs.legend(loc="upper left", bbox_to_anchor=(1, 1))
         fig.tight_layout()
         fig.savefig(os.path.join(RES_DIR, "free-windows-fi"))
 
@@ -183,6 +187,18 @@ class TestFreezingFunctions(ut.TestCase):
         fig.tight_layout()
         fig.savefig(os.path.join(RES_DIR, "cockx-fi"))
 
+    def test_compute_zach_fi(self):
+        ct, cfi = frz.compute_zach_fi(self.x, self.fs)
+        ct = ct * (self.t[-1] - self.t[0]) + self.t[0]
+
+        fig, axs = pltlib.subplots()
+        self.mark_freezing_region_on_axes(axs)
+        axs.plot(ct, cfi, c="black")
+        axs.grid(True)
+        axs.set(xlabel="Time [s]", ylabel="Zach FI [-]")
+        fig.tight_layout()
+        fig.savefig(os.path.join(RES_DIR, "zach-fi"))
+
     def test_compute_multitaper_fi(self):
         ct, cfi = frz.compute_multitaper_fi(self.x, self.fs, dt=5.0, L=4, NW=2.5)
         ct = ct * (self.t[-1] - self.t[0]) + self.t[0]
@@ -199,15 +215,19 @@ class TestFreezingFunctions(ut.TestCase):
         tmoore, fimoore = frz.compute_moore_fi(self.x, self.fs)
         tbachlin, fibachlin = frz.compute_bachlin_fi(self.x, self.fs)
         tcockx, ficockx = frz.compute_cockx_fi(self.x, self.fs)
+        tzach, fizach = frz.compute_zach_fi(self.x, self.fs)
         tmt, fimt = frz.compute_multitaper_fi(self.x, self.fs, dt=5.0, L=4, NW=2.5)
 
         dt = self.t[-1] - self.t[0]
         fig, axs = pltlib.subplots()
         self.mark_freezing_region_on_axes(axs)
-        axs.plot(tmoore * dt + self.t[0], fimoore, label="Moore")
-        axs.plot(tbachlin * dt + self.t[0], fibachlin, label="Bachlin")
-        axs.plot(tcockx * dt + self.t[0], ficockx, label="Cockx")
-        axs.plot(tmt * dt + self.t[0], fimt, label="Multi-taper")
+        axs.plot(tmoore * dt + self.t[0], self.standardize(fimoore), label="Moore")
+        axs.plot(
+            tbachlin * dt + self.t[0], self.standardize(fibachlin), label="Bachlin"
+        )
+        axs.plot(tcockx * dt + self.t[0], self.standardize(ficockx), label="Cockx")
+        axs.plot(tzach * dt + self.t[0], self.standardize(fizach), label="Zach")
+        axs.plot(tmt * dt + self.t[0], self.standardize(fimt), label="Multi-taper")
         axs.grid(True)
         axs.legend(loc="upper left", bbox_to_anchor=(1, 1))
         axs.set(xlabel="Scaled time [a.u.]", ylabel="FI [-]")
@@ -240,6 +260,7 @@ class TestFreezingFunctions(ut.TestCase):
         tmoore, fimoore = frz.compute_moore_fi(x, fs)
         tbachlin, fibachlin = frz.compute_bachlin_fi(x, fs)
         tcockx, ficockx = frz.compute_cockx_fi(x, fs)
+        tzach, fizach = frz.compute_zach_fi(x, fs)
         tmt, fimt = frz.compute_multitaper_fi(x, fs, dt=5, L=4, NW=2.5)
         dt = t[-1] - t[0]
 
@@ -247,29 +268,17 @@ class TestFreezingFunctions(ut.TestCase):
         axs[0].plot(t, x, c="black")
         axs[0].plot(t, f, c="red")
         axs[0].set(ylabel="Frequency [Hz]")
-        axs[1].plot(tmoore * dt + t[0], fimoore, label="Moore", lw=2)
-        axs[1].plot(tbachlin * dt + t[0], fibachlin, label="Bachlin", lw=2)
-        axs[1].plot(tcockx * dt + t[0], ficockx, label="Cockx", lw=2)
-        axs[1].plot(tmt * dt + t[0], fimt, label="Multitaper", c="black", lw=3)
-        axs[1].grid(True)
-        axs[1].legend(loc="lower left", bbox_to_anchor=(0, 1), ncols=4)
-        axs[1].set(xlabel="Time [s]", ylabel="FI [-]", xlim=(0, t1), ylim=(-50, 50))
-        fig.tight_layout()
-        fig.savefig(os.path.join(RES_DIR, "fi-comparison-sweeping-seq"))
-
-        standardize = lambda x: (x - np.mean(x)) / np.std(x)
-        fig, axs = pltlib.subplots(nrows=2, sharex=True)
-        axs[0].plot(t, x, c="black")
-        axs[0].plot(t, f, c="red")
-        axs[0].set(ylabel="Frequency [Hz]")
-        axs[1].plot(tmoore * dt + t[0], standardize(fimoore), label="Moore", lw=2)
-        axs[1].plot(tbachlin * dt + t[0], standardize(fibachlin), label="Bachlin", lw=2)
-        axs[1].plot(tcockx * dt + t[0], standardize(ficockx), label="Cockx", lw=2)
+        axs[1].plot(tmoore * dt + t[0], self.standardize(fimoore), label="Moore", lw=2)
         axs[1].plot(
-            tmt * dt + t[0], standardize(fimt), label="Multitaper", c="black", lw=3
+            tbachlin * dt + t[0], self.standardize(fibachlin), label="Bachlin", lw=2
+        )
+        axs[1].plot(tcockx * dt + t[0], self.standardize(ficockx), label="Cockx", lw=2)
+        axs[1].plot(tzach * dt + t[0], self.standardize(fizach), label="Zach", lw=2)
+        axs[1].plot(
+            tmt * dt + t[0], self.standardize(fimt), label="Multitaper", c="black", lw=3
         )
         axs[1].grid(True)
-        axs[1].legend(loc="lower left", bbox_to_anchor=(0, 1), ncols=4)
+        axs[1].legend(loc="lower left", bbox_to_anchor=(0, 1), ncols=len(frz.VARIANTS))
         axs[1].set(
             xlabel="Time [s]",
             ylabel="Standardized FI [-]",
@@ -277,7 +286,7 @@ class TestFreezingFunctions(ut.TestCase):
             ylim=(-2.5, 2.5),
         )
         fig.tight_layout()
-        fig.savefig(os.path.join(RES_DIR, "fi-comparison-sweeping-seq-standardized"))
+        fig.savefig(os.path.join(RES_DIR, "fi-comparison-sweeping-seq"))
 
     def test_compare_fi_implementations_pure_random_sequence(self):
         fs = 100
@@ -289,30 +298,22 @@ class TestFreezingFunctions(ut.TestCase):
         tmoore, fimoore = frz.compute_moore_fi(x, fs)
         tbachlin, fibachlin = frz.compute_bachlin_fi(x, fs)
         tcockx, ficockx = frz.compute_cockx_fi(x, fs)
+        tzach, fizach = frz.compute_zach_fi(x, fs)
         tmt, fimt = frz.compute_multitaper_fi(x, fs, dt=5, L=4, NW=2.5)
         dt = t[-1] - t[0]
 
         fig, axs = pltlib.subplots()
-        axs.plot(tmoore * dt + t[0], fimoore, label="Moore", lw=2)
-        axs.plot(tbachlin * dt + t[0], fibachlin, label="Bachlin", lw=2)
-        axs.plot(tcockx * dt + t[0], ficockx, label="Cockx", lw=2)
-        axs.plot(tmt * dt + t[0], fimt, label="Multitaper", c="black", lw=3)
-        axs.grid(True)
-        axs.legend(loc="lower left", bbox_to_anchor=(0, 1), ncols=4)
-        axs.set(xlabel="Time [s]", ylabel="FI [-]", xlim=(0, t1))  # , ylim=(-50, 50))
-        fig.tight_layout()
-        fig.savefig(os.path.join(RES_DIR, "fi-comparison-random-seq"))
-
-        standardize = lambda x: (x - np.mean(x)) / np.std(x)
-        fig, axs = pltlib.subplots()
-        axs.plot(tmoore * dt + t[0], standardize(fimoore), label="Moore", lw=2)
-        axs.plot(tbachlin * dt + t[0], standardize(fibachlin), label="Bachlin", lw=2)
-        axs.plot(tcockx * dt + t[0], standardize(ficockx), label="Cockx", lw=2)
+        axs.plot(tmoore * dt + t[0], self.standardize(fimoore), label="Moore", lw=2)
         axs.plot(
-            tmt * dt + t[0], standardize(fimt), label="Multitaper", c="black", lw=3
+            tbachlin * dt + t[0], self.standardize(fibachlin), label="Bachlin", lw=2
+        )
+        axs.plot(tcockx * dt + t[0], self.standardize(ficockx), label="Cockx", lw=2)
+        axs.plot(tzach * dt + t[0], self.standardize(fizach), label="Zach", lw=2)
+        axs.plot(
+            tmt * dt + t[0], self.standardize(fimt), label="Multitaper", c="black", lw=3
         )
         axs.grid(True)
-        axs.legend(loc="lower left", bbox_to_anchor=(0, 1), ncols=4)
+        axs.legend(loc="lower left", bbox_to_anchor=(0, 1), ncols=len(frz.VARIANTS))
         axs.set(
             xlabel="Time [s]",
             ylabel="Standardized FI [-]",
@@ -320,4 +321,17 @@ class TestFreezingFunctions(ut.TestCase):
             ylim=(-2.5, 2.5),
         )
         fig.tight_layout()
-        fig.savefig(os.path.join(RES_DIR, "fi-comparison-random-seq-standardized"))
+        fig.savefig(os.path.join(RES_DIR, "fi-comparison-random-seq"))
+
+    def test_compute_fi_variant_by_name(self):
+        er = frz.compute_multitaper_fi(self.x, self.fs)
+
+        # Test access via string
+        cr = frz.compute_fi_variant(self.x, self.fs, variant="multitaper")
+        np.testing.assert_array_almost_equal(cr[0], er[0])
+        np.testing.assert_array_almost_equal(cr[1], er[1])
+
+        # Test access via enum
+        cr = frz.compute_fi_variant(self.x, self.fs, variant=frz.VARIANTS.MULTITAPER)
+        np.testing.assert_array_almost_equal(cr[0], er[0])
+        np.testing.assert_array_almost_equal(cr[1], er[1])

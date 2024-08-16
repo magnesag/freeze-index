@@ -25,12 +25,48 @@ class FREQUENCY_RANGE(enum.Enum):
 
 class FI_THS(enum.Enum):
     MOORE: float = 2.3
+    ZACH: float = 1.47
+    BACHLIN: float = 1.5
+
+
+class VARIANTS(str, enum.Enum):
+    MOORE: str = "moore"
+    BACHLIN: str = "bachlin"
+    COCKX: str = "cockx"
+    ZACH: str = "zach"
+    MULTITAPER: str = "multitaper"
 
 
 MIN_FFT_WINDOW_SIZE = 256
 HOP_DIV = 32
 
 logger = logging.getLogger(__name__)
+
+
+def compute_fi_variant(
+    x: np.ndarray,
+    fs: float = 100.0,
+    variant: VARIANTS = VARIANTS.MULTITAPER,
+    variant_kwargs: dict = {},
+) -> tuple[np.ndarray]:
+    """!Compute the FI on x using the selected variant
+
+    @param x Proxy signal
+    @param fs (default: 100.0) Sampling frequency in Hz
+    @param variant (default: "multitaper") Variant to use for FI computation
+    @param variant_kwargs (default: {}) Keyword arguments for the variant
+    @return
+    """
+    if variant == VARIANTS.MOORE:
+        return compute_moore_fi(x, fs)
+    elif variant == VARIANTS.BACHLIN:
+        return compute_bachlin_fi(x, fs)
+    elif variant == VARIANTS.COCKX:
+        return compute_cockx_fi(x, fs)
+    elif variant == VARIANTS.MULTITAPER:
+        return compute_multitaper_fi(x, fs, **variant_kwargs)
+    else:
+        raise ValueError(f"Unknown variant {variant}")
 
 
 def compute_fi_free_window(
@@ -218,7 +254,7 @@ def compute_bachlin_fi(proxy: np.ndarray, fs: float = 100.0) -> tuple[np.ndarray
     """
     BACHLIN_WINDOW_DURATION_S = 4.0
     BACHLIN_STEP_DURATION_S = 0.5
-    n = round(BACHLIN_WINDOW_DURATION_S * fs)
+    n = round(BACHLIN_WINDOW_DURATION_S * fs) + 1
     step = round(BACHLIN_STEP_DURATION_S * fs)
     fi = []
     f, loco_idx, freeze_idx = generate_freqs_locomotion_and_freeze_band_indices(n, fs)
@@ -265,7 +301,7 @@ def compute_cockx_fi(proxy: np.ndarray, fs: float = 100.0) -> tuple[np.ndarray]:
     @return t, FI according to Cockx
     """
     COCKX_WINDOW_DURATION_S = 3.0
-    n = round(COCKX_WINDOW_DURATION_S * fs)
+    n = round(COCKX_WINDOW_DURATION_S * fs) + 1
     fi = []
     f, loco_idx, freeze_idx = generate_freqs_locomotion_and_freeze_band_indices(n, fs)
     w = signal.windows.hann(n)
@@ -285,6 +321,17 @@ def compute_cockx_fi(proxy: np.ndarray, fs: float = 100.0) -> tuple[np.ndarray]:
 
     t = np.linspace(0, 1, len(fi) + 1)
     return t[1:], apply_moore_fi_scaling(np.array(fi))
+
+
+def compute_zach_fi(proxy: np.ndarray, fs: float = 100.0) -> tuple[np.ndarray]:
+    """Compute FI according to Zach
+
+    This is a Moore FI with window size set to 2 s.
+    """
+    ZACH_WINDOW_DURATION_S = 2.0
+    w = int(fs * ZACH_WINDOW_DURATION_S) + 1
+    t, fi = compute_fi_free_window(proxy, w, fs)
+    return t, apply_moore_fi_scaling(fi)
 
 
 def compute_multitaper_fi(
