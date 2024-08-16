@@ -28,6 +28,8 @@ G = 9.81
 MS2S = 1e-3
 MG2MPS2 = G * 1e-3
 
+# Run options
+RUN_ONLY_ONE = True
 
 ## Plotting options
 PLOT_RC = {

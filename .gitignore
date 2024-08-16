@@ -159,3 +159,6 @@ cython_debug/
 
 # Raw data
 data/*.txt
+
+# Results artifacts - one can simply run the scripts to regenerate them
+res/*

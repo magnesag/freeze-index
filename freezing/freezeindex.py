@@ -63,6 +63,8 @@ def compute_fi_variant(
         return compute_bachlin_fi(x, fs)
     elif variant == VARIANTS.COCKX:
         return compute_cockx_fi(x, fs)
+    elif variant == VARIANTS.ZACH:
+        return compute_zach_fi(x, fs)
     elif variant == VARIANTS.MULTITAPER:
         return compute_multitaper_fi(x, fs, **variant_kwargs)
     else:
