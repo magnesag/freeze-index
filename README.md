@@ -35,7 +35,7 @@ python3.9 run_proxy_sweep.py
 ```
 
 ## References
-[1] Moore, S. T., MacDougall, H. G., & Ondo, W. G. (2008). Ambulatory monitoring of freezing of gait in Parkinson's disease. Journal of Neuroscience Methods, 167(2), 340-348. doi:10.1016/j.jneumeth.2007.08.023
+[1] Moore ST, MacDougall HG, Ondo WG. Ambulatory monitoring of freezing of gait in Parkinson's disease. Journal of neuroscience methods. 2008 Jan 30;167(2):340-8.
 
 [2] Bachlin M, Plotnik M, Roggen D, Maidan I, Hausdorff JM, Giladi N, Troster G. Wearable assistant for Parkinson’s disease patients with the freezing of gait symptom. IEEE Transactions on Information Technology in Biomedicine. 2009 Nov 10;14(2):436-46.
 
