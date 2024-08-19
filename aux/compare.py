@@ -124,3 +124,66 @@ def compare_signals(xs: np.ndarray, names: list[str]) -> ComparisonMetrics:
     np.fill_diagonal(r2, 1.0)
 
     return ComparisonMetrics(mad, rho, r2, names)
+
+
+def overlay(
+    t: np.ndarray,
+    estimates: dict[str, np.ndarray],
+    flag: np.ndarray,
+    dest: str = None,
+    standardized: bool = False,
+):
+    """Overlay estimates of Freeze Index (FI) from different methods on a single plot.
+
+    This function creates a plot that overlays FI estimates from various methods,
+    highlighting periods of FOG with gray shading. It saves the resulting plot as an image file.
+
+    Side effects
+    - Creates and saves a matplotlib figure as an image file.
+    - The filename is either 'fi-overlay-standardized' or 'fi-overlay', depending on
+      the 'standardized' parameter.
+    - If 'dest' is provided, the file is saved in that directory; otherwise, it's saved
+      in the current working directory.
+
+    Notes:
+    - The 'multitaper' method, if present in estimates, is plotted with a thicker black line
+      and brought to the front of the plot.
+    - FOG periods are highlighted with gray shading on the plot.
+    - The legend is positioned above the plot for clarity.
+
+    @param t 1D array of time values corresponding to the FI estimates.
+    @param estimates A dictionary where keys are method names (e.g., 'multitaper') and values are  dictionaries containing 't' (time) and 'fi' (freeze index) arrays.
+    @param flag 1D boolean array indicating the presence of FOG (True) or absence (False) at each time point.
+    @param dest Destination directory for saving the plot. If None, saves in the current directory. Default is None.
+    @param standardized If True, standardized FI values are assumed and includes this in the filename and y-axis label. Default is False.
+    """
+    YLABEL = "Standardized FI [-]" if standardized else "FI [-]"
+    fn = f"fi-overlay-standardized" if standardized else f"fi-overlay"
+    colors = iter(pltlib.cm.viridis(np.linspace(0, 1, len(estimates) - 1)))
+    fig, axs = pltlib.subplots()
+    for case, vals in estimates.items():
+        kwargs = {"label": case.title(), "ls": "--"}
+        if case == "multitaper":
+            kwargs.update({"lw": 2, "c": "black", "zorder": 10, "ls": "--"})
+        else:
+            kwargs.update({"c": next(colors)})
+
+        axs.plot(vals["t"], vals["fi"], **kwargs)
+
+    fog_starts = np.arange(len(flag) - 1)[np.diff(flag) > 0]
+    fog_stops = np.arange(len(flag) - 1)[np.diff(flag) < 0]
+    for start, stop in zip(fog_starts, fog_stops):
+        pltlib.axvspan(t[start], t[stop], fc="gray", alpha=0.5)
+
+    axs.grid(True)
+    axs.set(xlabel="Recording time [s]", xlim=(t[0], t[-1]), ylabel=YLABEL)
+    if standardized:
+        axs.set_ylim(-5, 5)
+    axs.legend(loc="lower left", bbox_to_anchor=(0, 1), ncols=len(estimates))
+    fig.tight_layout()
+    if dest is None:
+        fig.savefig(fn)
+    else:
+        fig.savefig(os.path.join(dest, fn))
+
+    pltlib.close(fig)

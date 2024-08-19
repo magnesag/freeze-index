@@ -75,28 +75,6 @@ def compare_fis(
 ):
     """!Compare FIs"""
 
-    # TODO Reintroduce and refactor
-    # YLABEL = "Standardized FI [-]" if standardize else "FI [-]"
-    # fn = f"fi-comparison-standardized" if standardize else f"fi-comparison"
-    # fig, axs = pltlib.subplots()
-    # for case, vals in estimates.items():
-    #     kwargs = {"label": case.title()}
-    #     if case == "multitaper":
-    #         kwargs.update({"lw": 3, "c": "black", "zorder": 10})
-
-    #     axs.plot(vals["t"], vals["fi"], **kwargs)
-
-    # fog_starts = np.arange(len(flag) - 1)[np.diff(flag) > 0]
-    # fog_stops = np.arange(len(flag) - 1)[np.diff(flag) < 0]
-    # for start, stop in zip(fog_starts, fog_stops):
-    #     pltlib.axvspan(t[start], t[stop], fc="gray", alpha=0.5)
-
-    # axs.grid(True)
-    # axs.set(xlabel="Recording time [s]", xlim=(t[0], t[-1]), ylabel=YLABEL)
-    # axs.legend(loc="lower left", bbox_to_anchor=(0, 1), ncols=len(estimates))
-    # fig.tight_layout()
-    # fig.savefig(os.path.join(dest, fn))
-
     n = max(len(case["fi"]) for case in estimates.values())
     xs = np.zeros((len(estimates), n))
     names = []
@@ -104,8 +82,9 @@ def compare_fis(
         xs[ii] = compare.resample_to_n_samples(estimates[variant]["fi"], n)
         names.append(variant)
 
-    comparison = compare.compare_signals(xs, names)
-    comparison.visualize(dest)
+    comparison_metrics = compare.compare_signals(xs, names)
+    comparison_metrics.visualize(dest)
+    compare.overlay(t, estimates, flag, dest, standardized)
 
 
 def main(fns: list[str], standardize, proxy_choice: ProxyChoice) -> None:
