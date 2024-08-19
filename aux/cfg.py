@@ -7,6 +7,8 @@
 """
 
 import os
+import numpy as np
+import matplotlib.pyplot as pltlib
 
 ## Paths
 FILE_DIR = os.path.normpath(os.path.abspath(os.path.dirname(__file__)))
@@ -38,6 +40,8 @@ PLOT_RC = {
     "font": {"family": "serif", "size": 16},
     "text": {"usetex": True},
 }
+generate_n_colors_from_cmap = lambda n: pltlib.cm.viridis(np.linspace(0, 1, n))
+STANDARDIZED_AX_LIM = (-5, 5)
 
 ## Misc
 DIRECTIONS = ("x", "y", "z")

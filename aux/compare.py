@@ -126,6 +126,81 @@ def compare_signals(xs: np.ndarray, names: list[str]) -> ComparisonMetrics:
     return ComparisonMetrics(mad, rho, r2, names)
 
 
+def draw_all_comparisons(
+    xs: dict[str, np.ndarray],
+    metrics: ComparisonMetrics,
+    names: list[str],
+    dest: str = None,
+):
+    """!Plot direct comparisons between different proxies
+
+    @param xs Dictionary of proxy values
+    @param metrics Comparison metrics
+    @param dest Image file destination (directory)
+    """
+    n_variants = xs.shape[0]
+    fig, axs = pltlib.subplots(
+        n_variants, n_variants, figsize=(12, 12), sharex=True, sharey=True
+    )
+    axs[0, 0].set(xlim=cfg.STANDARDIZED_AX_LIM, ylim=cfg.STANDARDIZED_AX_LIM)
+    DOWNSAMPLE = max(int(len(xs[0]) / 250), 1)
+    for ii in range(n_variants):
+        for jj in range(n_variants):
+            if ii > jj:
+                axs[ii, jj].plot(
+                    xs[ii][::DOWNSAMPLE],
+                    xs[jj][::DOWNSAMPLE],
+                    "o",
+                    alpha=0.5,
+                    c="deepskyblue",
+                )
+                axs[ii, jj].set(aspect="equal")
+                axs[ii, jj].plot(
+                    cfg.STANDARDIZED_AX_LIM,
+                    cfg.STANDARDIZED_AX_LIM,
+                    "--",
+                    color="black",
+                )
+                axs[ii, jj].grid(True)
+
+            elif ii < jj:
+                axs[ii, jj].text(
+                    0.0,
+                    0.0,
+                    "\n".join(
+                        [
+                            rf"$\rho$ = {metrics.rho[ii,jj]:.2f}",
+                            f"$R^2$ = {metrics.r2[ii,jj]:.2f}",
+                            f"MAD = {metrics.mad[ii,jj]:.2f}",
+                        ]
+                    ),
+                    va="center",
+                    ha="center",
+                )
+
+            else:
+                axs[ii, jj].text(
+                    0.0,
+                    0.0,
+                    f"{names[ii].title()}",
+                    ha="center",
+                    va="center",
+                )
+                axs[ii, jj].axis("off")
+
+    for ii in range(n_variants):
+        axs[ii, 0].set_ylabel(f"{names[ii].title()} FI")
+        axs[-1, ii].set_xlabel(f"{names[ii].title()} FI")
+
+    fig.tight_layout()
+    if dest is None:
+        fig.savefig("direct-comparisons")
+    else:
+        fig.savefig(os.path.join(dest, "direct-comparisons"))
+
+    pltlib.close(fig)
+
+
 def overlay(
     t: np.ndarray,
     estimates: dict[str, np.ndarray],
@@ -159,7 +234,7 @@ def overlay(
     """
     YLABEL = "Standardized FI [-]" if standardized else "FI [-]"
     fn = f"fi-overlay-standardized" if standardized else f"fi-overlay"
-    colors = iter(pltlib.cm.viridis(np.linspace(0, 1, len(estimates) - 1)))
+    colors = iter(cfg.generate_n_colors_from_cmap(len(estimates) - 1))
     fig, axs = pltlib.subplots()
     for case, vals in estimates.items():
         kwargs = {"label": case.title(), "ls": "--"}
@@ -178,7 +253,8 @@ def overlay(
     axs.grid(True)
     axs.set(xlabel="Recording time [s]", xlim=(t[0], t[-1]), ylabel=YLABEL)
     if standardized:
-        axs.set_ylim(-5, 5)
+        axs.set_ylim(cfg.STANDARDIZED_AX_LIM)
+
     axs.legend(loc="lower left", bbox_to_anchor=(0, 1), ncols=len(estimates))
     fig.tight_layout()
     if dest is None:
@@ -187,3 +263,25 @@ def overlay(
         fig.savefig(os.path.join(dest, fn))
 
     pltlib.close(fig)
+
+
+def compare_fis(
+    t: np.ndarray,
+    estimates: dict[str, dict[str, np.ndarray]],
+    dest: str,
+    flag: np.ndarray,
+    standardized: bool = True,
+):
+    """!Compare FIs"""
+
+    n = max(len(case["fi"]) for case in estimates.values())
+    xs = np.zeros((len(estimates), n))
+    names = []
+    for ii, (variant, val) in enumerate(estimates.items()):
+        xs[ii] = resample_to_n_samples(val["fi"], n)
+        names.append(variant)
+
+    comparison_metrics = compare_signals(xs, names)
+    comparison_metrics.visualize(dest)
+    overlay(t, estimates, flag, dest, standardized)
+    draw_all_comparisons(xs, comparison_metrics, names, dest)

@@ -66,27 +66,6 @@ def eval_fis(
     return res
 
 
-def compare_fis(
-    t: np.ndarray,
-    estimates: dict[str, dict[str, np.ndarray]],
-    dest: str,
-    flag: np.ndarray,
-    standardized: bool = True,
-):
-    """!Compare FIs"""
-
-    n = max(len(case["fi"]) for case in estimates.values())
-    xs = np.zeros((len(estimates), n))
-    names = []
-    for ii, variant in enumerate(frz.VARIANTS):
-        xs[ii] = compare.resample_to_n_samples(estimates[variant]["fi"], n)
-        names.append(variant)
-
-    comparison_metrics = compare.compare_signals(xs, names)
-    comparison_metrics.visualize(dest)
-    compare.overlay(t, estimates, flag, dest, standardized)
-
-
 def main(fns: list[str], standardize, proxy_choice: ProxyChoice) -> None:
     """!Evaluate FIs on Daphnet sets"""
 
@@ -110,7 +89,9 @@ def main(fns: list[str], standardize, proxy_choice: ProxyChoice) -> None:
 
         logger.debug(f"Sampling frequency detected to be {fs:.2f} Hz")
         fis = eval_fis(data.t, x, fs, standardize=standardize)
-        compare_fis(data.t, fis, dest_subdir, data.flag, standardized=standardize)
+        compare.compare_fis(
+            data.t, fis, dest_subdir, data.flag, standardized=standardize
+        )
         pltlib.close("all")
 
 
