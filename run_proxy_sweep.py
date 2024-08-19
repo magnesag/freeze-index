@@ -66,7 +66,6 @@ def compare_fi_for_proxys(fns: list[str], standardize: bool) -> None:
 
     @param fns Data files (filenames with path)
     @param standardize Whether to standardize the FI values
-    @param proxy_choice Proxy signal of choice
     """
 
     for fn in fns:

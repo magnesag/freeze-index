@@ -12,6 +12,7 @@ import dataclasses
 import os
 
 import matplotlib.pyplot as pltlib
+import matplotlib.colors as mcols
 import numpy as np
 from sklearn import metrics
 
@@ -202,6 +203,19 @@ def draw_all_comparisons(
         fig.savefig(os.path.join(dest, "direct-comparisons"))
 
 
+def mark_fog_regions_on_axs(t: np.ndarray, flag: np.ndarray, axs: pltlib.axes):
+    """!Mark FOG region on axes
+
+    @param t
+    @param flag
+    @param axs
+    """
+    fog_starts = np.arange(len(flag) - 1)[np.diff(flag) > 0]
+    fog_stops = np.arange(len(flag) - 1)[np.diff(flag) < 0]
+    for start, stop in zip(fog_starts, fog_stops):
+        axs.axvspan(t[start], t[stop], fc="gray", alpha=0.5)
+
+
 def overlay(
     t: np.ndarray,
     estimates: dict[str, np.ndarray],
@@ -239,8 +253,9 @@ def overlay(
     if "multitaper" in estimates.keys():
         n -= 1
 
-    colors = iter(cfg.generate_n_colors_from_cmap(n))
+    colors = iter(cfg.generate_n_colors_from_cmap(n, cfg.COMP_CM))
     fig, axs = pltlib.subplots()
+    mark_fog_regions_on_axs(t, flag, axs)
     for case, vals in estimates.items():
         kwargs = {"label": case.title(), "ls": "--"}
         if case == "multitaper":
@@ -249,11 +264,6 @@ def overlay(
             kwargs.update({"c": next(colors)})
 
         axs.plot(vals["t"], vals["fi"], **kwargs)
-
-    fog_starts = np.arange(len(flag) - 1)[np.diff(flag) > 0]
-    fog_stops = np.arange(len(flag) - 1)[np.diff(flag) < 0]
-    for start, stop in zip(fog_starts, fog_stops):
-        pltlib.axvspan(t[start], t[stop], fc="gray", alpha=0.5)
 
     axs.grid(True)
     axs.set(xlabel="Recording time [s]", xlim=(t[0], t[-1]), ylabel=YLABEL)
@@ -289,3 +299,41 @@ def compare_fis(
     overlay(t, estimates, flag, dest, standardized)
     draw_all_comparisons(xs, comparison_metrics, names, dest)
     pltlib.close("all")
+
+
+def draw_sweep_comparison(
+    t: np.ndarray,
+    param_values: np.ndarray,
+    estimates: list[dict[str, np.ndarray]],
+    param_name_label: tuple[str, str],
+    dest: str = None,
+    flags: np.ndarray = None,
+):
+    """!Draw sweep comparison"""
+    colors = cfg.generate_n_colors_from_cmap(len(param_values), cfg.SWEEP_CM)
+    fig, axs = pltlib.subplots()
+    for ii, est in enumerate(estimates):
+        axs.plot(est["t"], est["fi"], c=colors[ii])
+
+    fig.colorbar(
+        pltlib.cm.ScalarMappable(
+            norm=mcols.Normalize(param_values[0], param_values[-1]), cmap=cfg.SWEEP_CM
+        ),
+        ax=axs,
+        label=param_name_label[1],
+    )
+    if not flags is None:
+        mark_fog_regions_on_axs(t, flags, axs)
+    axs.grid(True)
+    axs.set(
+        xlim=(estimates[0]["t"][0], estimates[0]["t"][-1]),
+        xlabel="Recording time [s]",
+        ylabel=param_name_label[1],
+    )
+    fig.tight_layout()
+    fn = f"{param_name_label[0]}-sweep"
+    if not dest is None:
+        fn = os.path.join(dest, fn)
+
+    fig.savefig(fn)
+    pltlib.close(fig)

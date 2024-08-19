@@ -42,7 +42,9 @@ PLOT_RC = {
     "font": {"family": "serif", "size": 16},
     "text": {"usetex": True},
 }
-generate_n_colors_from_cmap = lambda n: pltlib.cm.viridis(np.linspace(0, 1, n))
+SWEEP_CM = pltlib.cm.inferno
+COMP_CM = pltlib.cm.viridis
+generate_n_colors_from_cmap = lambda n, cmap: cmap(np.linspace(0, 1, n))
 STANDARDIZED_AX_LIM = (-5, 5)
 DIRECT_COMPARISON_MAX_PTS = 250
 

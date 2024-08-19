@@ -27,14 +27,12 @@ on the FI run
 ```bash
 python3.9 run_multitaper_sweep.py
 ```
-**NOTE** TO BE ADDED
 
 ## Proxy Evaluation
 To evaluate the effect of proxy choice on the FI for the multitaper definition, run
 ```bash
 python3.9 run_proxy_sweep.py
 ```
-**NOTE** TO BE ADDED
 
 ## References
 [1] Moore, S. T., MacDougall, H. G., & Ondo, W. G. (2008). Ambulatory monitoring of freezing of gait in Parkinson's disease. Journal of Neuroscience Methods, 167(2), 340-348. doi:10.1016/j.jneumeth.2007.08.023
