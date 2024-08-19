@@ -9,6 +9,7 @@
 """
 
 import dataclasses
+import enum
 import logging
 import os
 from typing import Iterator
@@ -21,6 +22,15 @@ from . import cfg
 logger = logging.getLogger(__name__)
 
 
+## Proxy options
+class ProxyChoice(str, enum.Enum):
+    SHANK_X: str = "shank-x"
+    SHANK_Y: str = "shank-y"
+    SHANK_Z: str = "shank-z"
+    SHANK_M: str = "shank-magnitude"
+    SHANK_SUM: str = "shank-sum"
+
+
 @dataclasses.dataclass
 class _3DSignal:
     x: np.ndarray
@@ -30,6 +40,10 @@ class _3DSignal:
     @property
     def norm(self) -> np.ndarray:
         return linalg.norm(self.asarray(), axis=0)
+
+    @property
+    def sum(self) -> np.ndarray:
+        return np.sum(self.asarray(), axis=0)
 
     def __iter__(self) -> Iterator[np.ndarray]:
         for attr in "xyz":
@@ -49,6 +63,20 @@ class DaphnetRaw:
 
     def get_fs(self) -> float:
         return 1 / np.mean(np.diff(self.t))
+
+    def get_proxy(self, choice: ProxyChoice) -> np.ndarray:
+        if choice == ProxyChoice.SHANK_X:
+            return self.shank_xl.x
+        elif choice == ProxyChoice.SHANK_Y:
+            return self.shank_xl.y
+        elif choice == ProxyChoice.SHANK_Z:
+            return self.shank_xl.z
+        elif choice == ProxyChoice.SHANK_M:
+            return self.shank_xl.norm
+        elif choice == ProxyChoice.SHANK_SUM:
+            return self.shank_xl.sum
+        else:
+            raise ValueError(f"Invalid proxy choice {choice}")
 
 
 def get_files_in_dir(path: str, extension: str = ".json") -> list[str]:

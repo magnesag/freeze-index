@@ -19,6 +19,8 @@ RES_DIR = os.path.join(ROOT_DIR, "res")
 if not os.path.exists(RES_DIR):
     os.makedirs(RES_DIR)
 
+DAPHNET_FILE_EXTENSION = ".txt"
+
 ## Loggign options
 LOGGING_FMT = "%(asctime)s|%(levelname)s|%(module)s.%(funcName)s() -> %(msg)s"
 
@@ -30,8 +32,8 @@ G = 9.81
 MS2S = 1e-3
 MG2MPS2 = G * 1e-3
 
-# Run options
-RUN_ONLY_ONE = True
+## Run options
+RUN_ONLY_ONE = False
 
 ## Plotting options
 PLOT_RC = {
@@ -42,6 +44,7 @@ PLOT_RC = {
 }
 generate_n_colors_from_cmap = lambda n: pltlib.cm.viridis(np.linspace(0, 1, n))
 STANDARDIZED_AX_LIM = (-5, 5)
+DIRECT_COMPARISON_MAX_PTS = 250
 
 ## Misc
 DIRECTIONS = ("x", "y", "z")

@@ -1,22 +1,21 @@
 #!/usr/bin/env python3.9 -O
 """!
-    Evaluation of the FI Computation on Daphnet Data
-    ================================================
+    Evaluation of the FI Variants on Daphnet Data
+    =============================================
 
-    This script evaluates the FI computation on the Daphnet data.
+    This script evaluates the variants of the FI definition on the Daphnet data.
 
     @author A. Schaer
     @copyright Magnes AG, (C) 2024.
 """
-import enum
 import logging
 import os
+import warnings
 
 import matplotlib.pyplot as pltlib
 import numpy as np
 
 from aux import cfg, dataio, compare
-
 from freezing import freezeindex as frz
 
 FILE_DIR = os.path.abspath(os.path.dirname(__file__))
@@ -24,26 +23,20 @@ logging.basicConfig(level=logging.INFO, force=True, format=cfg.LOGGING_FMT)
 logger = logging.getLogger(__name__)
 
 
-class ProxyChoice(str, enum.Enum):
-    SHANK_X: str = "shank-x"
-    SHANK_Y: str = "shank-y"
-    SHANK_Z: str = "shank-z"
-    SHANK_M: str = "shank-magnitude"
-
-
 def setup() -> list[str]:
     """!Setup the environment and parse the CLI arguments
 
-    @return Parsed CLI arguments
+    @return List of datafiles
     """
     logger.info(__doc__)
+    warnings.filterwarnings("error")
     for kk, vv in cfg.PLOT_RC.items():
         pltlib.rc(kk, **vv)
 
     if not os.path.exists(cfg.RES_DIR):
         os.makedirs(cfg.RES_DIR)
 
-    return dataio.get_files_in_dir(cfg.DATA_DIR, ".txt")
+    return dataio.get_files_in_dir(cfg.DATA_DIR, cfg.DAPHNET_FILE_EXTENSION)
 
 
 def eval_fis(
@@ -51,8 +44,14 @@ def eval_fis(
     proxy: np.ndarray,
     fs: float,
     standardize: bool = True,
-) -> None:
-    """!Evaluate FIs"""
+) -> dict[str, dict[str, np.ndarray]]:
+    """!Evaluate FIs
+
+    @param t Time array of raw-data
+    @param proxy Proxy signal from which to evaluate the FI
+    @param fs sampling frequency
+    @param standardize Whether to standardize the FI values
+    """
     recording_time = t[-1] - t[0]
 
     res = {}
@@ -66,21 +65,21 @@ def eval_fis(
     return res
 
 
-def main(fns: list[str], standardize, proxy_choice: ProxyChoice) -> None:
-    """!Evaluate FIs on Daphnet sets"""
+def compare_implementations_for_proxy(
+    fns: list[str], standardize: bool, proxy_choice: dataio.ProxyChoice
+) -> dict[str, np.ndarray]:
+    """!Evaluate FIs on Daphnet sets
 
-    for fn in fns[:1]:
+    @param fns Data files (filenames with path)
+    @param standardize Whether to standardize the FI values
+    @param proxy_choice Proxy signal of choice
+    """
+
+    for fn in fns:
         logger.info(f"Working on {os.path.basename(fn)}")
         data = dataio.load_daphnet_txt(fn)
         fs = data.get_fs()
-        if proxy_choice == ProxyChoice.SHANK_X:
-            x = data.shank_xl.x
-        elif proxy_choice == ProxyChoice.SHANK_Y:
-            x = data.shank_xl.y
-        elif proxy_choice == ProxyChoice.SHANK_Z:
-            x = data.shank_xl.z
-        elif proxy_choice == ProxyChoice.SHANK_M:
-            x = data.shank_xl.norm
+        x = data.get_proxy(proxy_choice)
 
         _id = os.path.basename(fn).split(".")[0].lower()
         dest_subdir = os.path.join(cfg.RES_DIR, proxy_choice.value, _id)
@@ -88,27 +87,29 @@ def main(fns: list[str], standardize, proxy_choice: ProxyChoice) -> None:
             os.makedirs(dest_subdir)
 
         logger.debug(f"Sampling frequency detected to be {fs:.2f} Hz")
-        fis = eval_fis(data.t, x, fs, standardize=standardize)
+        try:
+            fis = eval_fis(data.t, x, fs, standardize=standardize)
+        except RuntimeWarning as e:
+            logger.error(
+                f"Exception {e} raised during evaluation of {fn} - skipping file"
+            )
+            continue
+
         compare.compare_fis(
             data.t, fis, dest_subdir, data.flag, standardized=standardize
         )
-        pltlib.close("all")
+
+        if cfg.RUN_ONLY_ONE:
+            import sys
+
+            logger.warning("Run only one is enabled, exiting")
+            sys.exit(0)
 
 
 if __name__ == "__main__":
     files = setup()
-    PROXY_CHOICES = [
-        ProxyChoice.SHANK_X,
-        ProxyChoice.SHANK_Y,
-        ProxyChoice.SHANK_Z,
-        ProxyChoice.SHANK_M,
-    ]
-    for choice in PROXY_CHOICES:
+    for choice in dataio.ProxyChoice:
         logger.info(f"Evaluating FIs on proxy {choice}")
-        for std in (True, False):
-            main(fns=files, standardize=std, proxy_choice=choice)
-            if cfg.RUN_ONLY_ONE:
-                import sys
-
-                logger.warning("Run only one is enabled, exiting")
-                sys.exit(0)
+        compare_implementations_for_proxy(
+            fns=files, standardize=True, proxy_choice=choice
+        )

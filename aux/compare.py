@@ -143,7 +143,7 @@ def draw_all_comparisons(
         n_variants, n_variants, figsize=(12, 12), sharex=True, sharey=True
     )
     axs[0, 0].set(xlim=cfg.STANDARDIZED_AX_LIM, ylim=cfg.STANDARDIZED_AX_LIM)
-    DOWNSAMPLE = max(int(len(xs[0]) / 250), 1)
+    DOWNSAMPLE = max(int(len(xs[0]) / cfg.DIRECT_COMPARISON_MAX_PTS), 1)
     for ii in range(n_variants):
         for jj in range(n_variants):
             if ii > jj:
@@ -197,8 +197,6 @@ def draw_all_comparisons(
         fig.savefig("direct-comparisons")
     else:
         fig.savefig(os.path.join(dest, "direct-comparisons"))
-
-    pltlib.close(fig)
 
 
 def overlay(
@@ -262,8 +260,6 @@ def overlay(
     else:
         fig.savefig(os.path.join(dest, fn))
 
-    pltlib.close(fig)
-
 
 def compare_fis(
     t: np.ndarray,
@@ -285,3 +281,4 @@ def compare_fis(
     comparison_metrics.visualize(dest)
     overlay(t, estimates, flag, dest, standardized)
     draw_all_comparisons(xs, comparison_metrics, names, dest)
+    pltlib.close("all")
