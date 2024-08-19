@@ -48,7 +48,7 @@ def compute_fi_variant(
     fs: float = 100.0,
     variant: VARIANTS = VARIANTS.MULTITAPER,
     variant_kwargs: dict = {},
-) -> tuple[np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray]:
     """!Compute the FI on x using the selected variant
 
     @param x Proxy signal
@@ -75,7 +75,7 @@ def compute_fi_free_window(
     x: np.ndarray,
     w: int,
     fs: float = 100.0,
-) -> tuple[np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray]:
     """!Compute the FI on x on a freely selectable window
 
     The FI definition introduced in
@@ -158,7 +158,9 @@ def apply_moore_fi_scaling(fi: np.ndarray) -> np.ndarray:
     return np.log(100 * fi)
 
 
-def compute_moore_fi(proxy: np.ndarray, fs: float = 100.0) -> tuple[np.ndarray]:
+def compute_moore_fi(
+    proxy: np.ndarray, fs: float = 100.0
+) -> tuple[np.ndarray, np.ndarray]:
     """!Compute the scaled FI according to Moore et al
 
     This function computes the FI for a window of 6 seconds and scales the
@@ -176,7 +178,9 @@ def compute_moore_fi(proxy: np.ndarray, fs: float = 100.0) -> tuple[np.ndarray]:
     return t, apply_moore_fi_scaling(fi)
 
 
-def compute_bachlin_fi(proxy: np.ndarray, fs: float = 100.0) -> tuple[np.ndarray]:
+def compute_bachlin_fi(
+    proxy: np.ndarray, fs: float = 100.0
+) -> tuple[np.ndarray, np.ndarray]:
     """Compute the FI according to Bachlin et al
 
     This method is based on the MATLAB code provided with the Daphnet dataset.
@@ -279,7 +283,9 @@ def compute_bachlin_fi(proxy: np.ndarray, fs: float = 100.0) -> tuple[np.ndarray
     return t[1:], apply_moore_fi_scaling(np.array(fi))
 
 
-def compute_cockx_fi(proxy: np.ndarray, fs: float = 100.0) -> tuple[np.ndarray]:
+def compute_cockx_fi(
+    proxy: np.ndarray, fs: float = 100.0
+) -> tuple[np.ndarray, np.ndarray]:
     """!Compute Cockx FI
 
     This is based on the MATLAB code provided with
@@ -325,7 +331,9 @@ def compute_cockx_fi(proxy: np.ndarray, fs: float = 100.0) -> tuple[np.ndarray]:
     return t[1:], apply_moore_fi_scaling(np.array(fi))
 
 
-def compute_zach_fi(proxy: np.ndarray, fs: float = 100.0) -> tuple[np.ndarray]:
+def compute_zach_fi(
+    proxy: np.ndarray, fs: float = 100.0
+) -> tuple[np.ndarray, np.ndarray]:
     """Compute FI according to Zach
 
     This is a Moore FI with window size set to 2 s.
@@ -338,7 +346,7 @@ def compute_zach_fi(proxy: np.ndarray, fs: float = 100.0) -> tuple[np.ndarray]:
 
 def compute_multitaper_fi(
     proxy: np.ndarray, fs: float = 100.0, dt: float = 5.0, L: int = 4, NW: float = 2.5
-) -> tuple[np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray]:
     """!Compute multitaper FI with L DPSS-tapers
 
     This is based on the multi-taper spectral estimation algorithm described in
@@ -389,7 +397,7 @@ def compute_multitaper_fi(
 
 def generate_freqs_locomotion_and_freeze_band_indices(
     nfft: int, fs: float
-) -> tuple[np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """!Generate frequencies, locomotion-band indices, and freezing-band indices
 
     @param nfft FFT samples
@@ -411,7 +419,7 @@ def compute_babadi_brown_multitaper_fi(
     fs: float = 100.0,
     dt: float = 1.0,
     spectral_resolution: float = 0.05,
-) -> tuple[np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray]:
     """!Compute multitaper FI based on multi-tapers spectral estimaition according to Babadi-Brown
 
     The number of tapers are defined based on the multi-taper spectral estimation
@@ -440,7 +448,7 @@ def compute_babadi_brown_multitaper_fi(
 
 def combine_fis(
     lt: list[float], lfi: list[float], rt: list[float], rfi: list[float]
-) -> tuple[np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray]:
     """!Combine FI sequences
 
     It is implicitly assumed that the two FI sequences correspond to the same
@@ -455,6 +463,4 @@ def combine_fis(
     """
 
     t = np.linspace(min(lt[0], rt[0]), max(lt[-1], rt[-1]), np.lcm(len(lt), len(rt)))
-    return t.tolist(), np.max(
-        np.vstack([np.interp(t, lt, lfi), np.interp(t, rt, rfi)]), axis=0
-    )
+    return t, np.max(np.vstack([np.interp(t, lt, lfi), np.interp(t, rt, rfi)]), axis=0)

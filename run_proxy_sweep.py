@@ -1,9 +1,9 @@
 #!/usr/bin/env python3.9 -O
 """!
-    Evaluation of the FI Variants on Daphnet Data
-    =============================================
+    Evaluation of the FI for Various Proxy Signals on Daphnet Data
+    ==============================================================
 
-    This script evaluates the variants of the FI definition on the Daphnet data.
+    This script evaluates the multitaper FI for various proxy choices on the Daphnet data.
 
     @author A. Schaer
     @copyright Magnes AG, (C) 2024.
@@ -39,7 +39,7 @@ def setup() -> list[str]:
     return dataio.get_files_in_dir(cfg.DATA_DIR, cfg.DAPHNET_FILE_EXTENSION)
 
 
-def eval_fis(
+def eval_fi(
     t: np.ndarray,
     proxy: np.ndarray,
     fs: float,
@@ -53,21 +53,15 @@ def eval_fis(
     @param standardize Whether to standardize the FI values
     """
     recording_time = t[-1] - t[0]
-
-    res = {}
-    for case in frz.VARIANTS:
-        logger.debug(f"Evaluating {case}")
-        fi_t, fi = frz.compute_fi_variant(proxy, fs, case)
-        res[case] = {"t": fi_t.copy() * recording_time + t[0], "fi": fi.copy()}
-        if standardize:
-            res[case]["fi"] = compare.standardize(res[case]["fi"])
+    fi_t, fi = frz.compute_multitaper_fi(proxy, fs)
+    res = {"t": fi_t.copy() * recording_time + t[0], "fi": fi.copy()}
+    if standardize:
+        res["fi"] = compare.standardize(res["fi"])
 
     return res
 
 
-def compare_implementations_for_proxy(
-    fns: list[str], standardize: bool, proxy_choice: dataio.ProxyChoice
-) -> None:
+def compare_fi_for_proxys(fns: list[str], standardize: bool) -> None:
     """!Evaluate FIs on Daphnet sets
 
     @param fns Data files (filenames with path)
@@ -79,25 +73,30 @@ def compare_implementations_for_proxy(
         logger.info(f"Working on {os.path.basename(fn)}")
         data = dataio.load_daphnet_txt(fn)
         fs = data.get_fs()
-        x = data.get_proxy(proxy_choice)
+        fis = {}
+        for pc in dataio.ProxyChoice:
+            x = data.get_proxy(pc)
+            _id = os.path.basename(fn).split(".")[0].lower()
+            dest_subdir = os.path.join(cfg.RES_DIR, "proxy-sweep", _id)
+            if not os.path.exists(dest_subdir):
+                os.makedirs(dest_subdir)
 
-        _id = os.path.basename(fn).split(".")[0].lower()
-        dest_subdir = os.path.join(cfg.RES_DIR, proxy_choice.value, _id)
-        if not os.path.exists(dest_subdir):
-            os.makedirs(dest_subdir)
+            logger.debug(f"Sampling frequency detected to be {fs:.2f} Hz")
+            try:
+                fis[pc] = eval_fi(data.t, x, fs, standardize=standardize)
+            except RuntimeWarning as e:
+                logger.error(
+                    f"Exception {e} raised during evaluation of {fn} - skipping file"
+                )
+                continue
 
-        logger.debug(f"Sampling frequency detected to be {fs:.2f} Hz")
         try:
-            fis = eval_fis(data.t, x, fs, standardize=standardize)
-        except RuntimeWarning as e:
-            logger.error(
-                f"Exception {e} raised during evaluation of {fn} - skipping file"
+            compare.compare_fis(
+                data.t, fis, dest_subdir, data.flag, standardized=standardize
             )
+        except ValueError as e:
+            logger.error(f"ValueError {e} for {fn} - skipping file")
             continue
-
-        compare.compare_fis(
-            data.t, fis, dest_subdir, data.flag, standardized=standardize
-        )
 
         if cfg.RUN_ONLY_ONE:
             import sys
@@ -108,11 +107,7 @@ def compare_implementations_for_proxy(
 
 def main() -> None:
     files = setup()
-    for choice in dataio.ProxyChoice:
-        logger.info(f"Evaluating FIs on proxy {choice}")
-        compare_implementations_for_proxy(
-            fns=files, standardize=True, proxy_choice=choice
-        )
+    compare_fi_for_proxys(fns=files, standardize=True)
 
 
 if __name__ == "__main__":

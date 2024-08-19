@@ -46,7 +46,10 @@ class ComparisonMetrics:
         )
         fig.colorbar(img, ax=axs, label="MAD [-]", shrink=0.73)
         TEXT_FNTSZ = min(cfg.PLOT_RC["font"]["size"], 64 / self._n)
-        font_dicts = ({"weight": "bold", "color": "white"}, {})
+        font_dicts = (
+            {"weight": "bold", "color": "white", "size": TEXT_FNTSZ},
+            {"size": TEXT_FNTSZ},
+        )
         for kk in range(self._n):
             for jj in range(self._n):
                 if jj == kk:
@@ -232,7 +235,11 @@ def overlay(
     """
     YLABEL = "Standardized FI [-]" if standardized else "FI [-]"
     fn = f"fi-overlay-standardized" if standardized else f"fi-overlay"
-    colors = iter(cfg.generate_n_colors_from_cmap(len(estimates) - 1))
+    n = len(estimates)
+    if "multitaper" in estimates.keys():
+        n -= 1
+
+    colors = iter(cfg.generate_n_colors_from_cmap(n))
     fig, axs = pltlib.subplots()
     for case, vals in estimates.items():
         kwargs = {"label": case.title(), "ls": "--"}
@@ -253,7 +260,7 @@ def overlay(
     if standardized:
         axs.set_ylim(cfg.STANDARDIZED_AX_LIM)
 
-    axs.legend(loc="lower left", bbox_to_anchor=(0, 1), ncols=len(estimates))
+    axs.legend(loc="upper left", bbox_to_anchor=(1, 1))
     fig.tight_layout()
     if dest is None:
         fig.savefig(fn)
