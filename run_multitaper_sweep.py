@@ -34,7 +34,6 @@ PARAM_NAMES_AND_LABELS = {
     "L": ("number-of-tapers", "$L$ [--]"),
     "NW": ("bandwidth", "$B$ [--]"),
 }
-DEFAULTS = {"dt": 5.0, "L": 4, "NW": 2.5}
 PROXY = dataio.ProxyChoice.SHANK_Y
 
 
@@ -105,7 +104,7 @@ def compare_fi_for_multitaper_parametric_sweep(
         x = data.get_proxy(PROXY)
         flags = data.flag.copy()
 
-        multitaper_kwargs = DEFAULTS.copy()
+        multitaper_kwargs = cfg.MULTITAPER_STANDARD_KWARGS.copy()
         fis = []
         for pval in PARAM_RANGES[sweeping_param]:
             multitaper_kwargs[sweeping_param] = pval

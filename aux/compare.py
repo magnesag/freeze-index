@@ -15,6 +15,7 @@ import matplotlib.pyplot as pltlib
 import matplotlib.colors as mcols
 import numpy as np
 from sklearn import metrics
+from scipy import signal
 
 from aux import cfg
 
@@ -235,12 +236,6 @@ def overlay(
     - If 'dest' is provided, the file is saved in that directory; otherwise, it's saved
       in the current working directory.
 
-    Notes:
-    - The 'multitaper' method, if present in estimates, is plotted with a thicker black line
-      and brought to the front of the plot.
-    - FOG periods are highlighted with gray shading on the plot.
-    - The legend is positioned above the plot for clarity.
-
     @param t 1D array of time values corresponding to the FI estimates.
     @param estimates A dictionary where keys are method names (e.g., 'multitaper') and values are  dictionaries containing 't' (time) and 'fi' (freeze index) arrays.
     @param flag 1D boolean array indicating the presence of FOG (True) or absence (False) at each time point.
@@ -257,9 +252,9 @@ def overlay(
     fig, axs = pltlib.subplots()
     mark_fog_regions_on_axs(t, flag, axs)
     for case, vals in estimates.items():
-        kwargs = {"label": case.title(), "ls": "--"}
+        kwargs = {"label": case.title(), "ls": "-", "lw": 3}
         if case == "multitaper":
-            kwargs.update({"lw": 2, "c": "black", "zorder": 10, "ls": "--"})
+            kwargs.update({"lw": 2, "c": "black", "zorder": 10, "ls": "-"})
         else:
             kwargs.update({"c": next(colors)})
 
@@ -272,6 +267,56 @@ def overlay(
 
     axs.legend(loc="upper left", bbox_to_anchor=(1, 1))
     fig.tight_layout()
+    if dest is None:
+        fig.savefig(fn)
+    else:
+        fig.savefig(os.path.join(dest, fn))
+
+
+def draw_fi_spectra(estimates: dict[str, np.ndarray], dest: str):
+    """!Draw spectra of the FI estimates
+
+    @param estimates
+    @param dest
+    """
+    spectra = []
+    freqs = []
+    names = []
+    nperseg = 256
+    for name, x in estimates.items():
+        try:
+            fs = 1 / np.mean(np.diff(x["t"]))
+            f, X = signal.welch(x["fi"], fs=fs, nperseg=nperseg)
+        except UserWarning:
+            f, X = [], []
+
+        spectra.append(X.copy())
+        freqs.append(f.copy())
+        names.append(name.title())
+
+    colors = iter(cfg.generate_n_colors_from_cmap(len(estimates) - 1, cfg.COMP_CM))
+    fig, axs = pltlib.subplots()
+    for f, x, name in zip(freqs, spectra, names):
+        kwargs = {"label": name.title(), "ls": "-", "lw": 3}
+        if name.lower() == "multitaper":
+            kwargs.update({"lw": 3, "c": "black", "zorder": 10, "ls": "--"})
+        else:
+            kwargs.update({"c": next(colors)})
+
+        axs.plot(f, x, **kwargs)
+
+    axs.set(
+        xscale="log",
+        yscale="log",
+        xlabel="Frequency [Hz]",
+        ylabel=r"$\rm PSD(FI)$ [--]",
+        xlim=(1e-2, 1e1),
+        ylim=(1e-5, 1e2),
+    )
+    axs.grid(True, which="both")
+    axs.legend(loc="upper left", bbox_to_anchor=(1, 1))
+    fig.tight_layout()
+    fn = "fi-spectra"
     if dest is None:
         fig.savefig(fn)
     else:
@@ -298,6 +343,7 @@ def compare_fis(
     comparison_metrics.visualize(dest)
     overlay(t, estimates, flag, dest, standardized)
     draw_all_comparisons(xs, comparison_metrics, names, dest)
+    draw_fi_spectra(estimates, dest)
     pltlib.close("all")
 
 

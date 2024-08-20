@@ -114,7 +114,7 @@ def compute_fi_free_window(
         scale_to="psd",
         fft_mode="onesided",
     )
-    ghost = stf.spectrogram(x, detr="constant")
+    ghost = stf.spectrogram(x, detr=None)
     locomotor_slc = slice(
         *[
             round(nf / (0.5 * fs) * ghost.shape[0])
@@ -138,8 +138,12 @@ def compute_fi_free_window(
     locomotor_power = np.trapz(locomotor_ghost, locomotor_f, axis=0)
     freeze_power = np.trapz(freeze_ghost, patho_f, axis=0)
     fi = (freeze_power / (locomotor_power + np.spacing(1))) ** 2
-    t = np.linspace(0, 1, len(fi))
-    return t, fi
+    t = stf.t(len(x))
+    t0 = 0
+    t1 = (len(x) - 1) / fs
+    idx = (t >= t0) * (t < t1)
+    fi = fi[idx]
+    return np.linspace(0, 1, len(fi)), fi
 
 
 def apply_moore_fi_scaling(fi: np.ndarray) -> np.ndarray:
@@ -262,6 +266,7 @@ def compute_bachlin_fi(
     BACHLIN_STEP_DURATION_S = 0.5
     n = round(BACHLIN_WINDOW_DURATION_S * fs) + 1
     step = round(BACHLIN_STEP_DURATION_S * fs)
+    n_over_step = n // step
     fi = []
     f, loco_idx, freeze_idx = generate_freqs_locomotion_and_freeze_band_indices(n, fs)
     for center_idx in range(n // 2, len(proxy) - n // 2, step):
@@ -279,8 +284,8 @@ def compute_bachlin_fi(
         fi.append(fp / (lp + np.spacing(1)))
 
     logger.debug(f"Number of FI samples {len(fi)}")
-    t = np.linspace(0, 1, len(fi) + 1)
-    return t[1:], apply_moore_fi_scaling(np.array(fi))
+    t = np.linspace(0, 1, len(fi) + n_over_step)
+    return t[n_over_step // 2 : -n_over_step // 2], np.array(fi)
 
 
 def compute_cockx_fi(
@@ -312,7 +317,7 @@ def compute_cockx_fi(
     n = round(COCKX_WINDOW_DURATION_S * fs) + 1
     fi = []
     f, loco_idx, freeze_idx = generate_freqs_locomotion_and_freeze_band_indices(n, fs)
-    w = signal.windows.hann(n)
+    w = signal.windows.hann(n, sym=False)
     for center_idx in range(n // 2, len(proxy) - n // 2, n // 2):
         x = proxy[center_idx - n // 2 : center_idx + 2 * (n + 1) // 4]
         if len(x) != n:
@@ -327,8 +332,8 @@ def compute_cockx_fi(
         fp = np.trapz(fpd, f[freeze_idx])
         fi.append((fp / (lp + np.spacing(1))) ** 2)
 
-    t = np.linspace(0, 1, len(fi) + 1)
-    return t[1:], apply_moore_fi_scaling(np.array(fi))
+    t = np.linspace(0, 1, len(fi) + 2)
+    return t[1:-1], apply_moore_fi_scaling(np.array(fi))
 
 
 def compute_zach_fi(
@@ -345,7 +350,12 @@ def compute_zach_fi(
 
 
 def compute_multitaper_fi(
-    proxy: np.ndarray, fs: float = 100.0, dt: float = 5.0, L: int = 4, NW: float = 2.5
+    proxy: np.ndarray,
+    fs: float = 100.0,
+    dt: float = 5,
+    L: int = 8,
+    NW: float = 2.5,
+    nmaf: int = 11,
 ) -> tuple[np.ndarray, np.ndarray]:
     """!Compute multitaper FI with L DPSS-tapers
 
@@ -361,38 +371,57 @@ def compute_multitaper_fi(
     @return t, FI
     """
     n = round(dt * fs) + 1
-    nfft = 2 ** int(np.log2(n) + 3)
+    nfft = 2 ** int(np.log2(n) + 3) - 1
     windows = signal.windows.dpss(n, NW, L, sym=False)
-    fi = []
-    f, loco_idx, freeze_idx = generate_freqs_locomotion_and_freeze_band_indices(
-        nfft, fs
+    spectrum = None
+    for win in windows:
+        stf = signal.ShortTimeFFT(
+            win=win,
+            hop=max(n // HOP_DIV, 1),
+            fs=fs,
+            mfft=nfft,
+            scale_to="psd",
+            fft_mode="onesided",
+        )
+        ghost = stf.spectrogram(proxy, detr="linear")
+        if spectrum is None:
+            spectrum = ghost.copy()
+        else:
+            spectrum += ghost.copy()
+
+    locomotor_slc = slice(
+        *[
+            round(nf / (0.5 * fs) * ghost.shape[0])
+            for nf in FREQUENCY_RANGE.LOCOMOTOR.value
+        ]
     )
+    freeze_slc = slice(
+        *[
+            round(nf / (0.5 * fs) * ghost.shape[0])
+            for nf in FREQUENCY_RANGE.FREEZING.value
+        ]
+    )
+    locomotor_ghost = ghost[locomotor_slc, :].copy()
+    freeze_ghost = ghost[freeze_slc, :].copy()
+    locomotor_f = np.linspace(
+        *FREQUENCY_RANGE.LOCOMOTOR.value, locomotor_ghost.shape[0]
+    )
+    patho_f = np.linspace(*FREQUENCY_RANGE.FREEZING.value, freeze_ghost.shape[0])
+    locomotor_power = np.trapz(locomotor_ghost, locomotor_f, axis=0)
+    freeze_power = np.trapz(freeze_ghost, patho_f, axis=0)
+    fi = freeze_power / (locomotor_power + np.spacing(1))
 
-    for center_idx in range(n // 2, len(proxy) - n // 2, HOP_DIV):
-        spectrum = np.zeros(nfft)
-        x = proxy[center_idx - n // 2 : center_idx + 2 * (n + 1) // 4]
-        if len(x) != n:
-            logger.warning(f"Invalid window length detected. Is {len(x)}, expected {n}")
-            continue
+    t = stf.t(len(proxy))
+    t0 = 0
+    t1 = (len(proxy) - 1) / fs
+    idx = (t > t0) * (t < t1)
 
-        y = signal.detrend(x)
-        for w in windows:
-            Y = fft.fft(y * w, n=nfft)
-            spectrum += np.square(np.abs(Y))
+    if isinstance(nmaf, int) and nmaf >= 3:
+        mafk = np.ones(nmaf) / nmaf
+        fi = np.convolve(fi, mafk, mode="full")[nmaf // 2 : -nmaf // 2 + 1]
 
-        lpd = spectrum[loco_idx]
-        fpd = spectrum[freeze_idx]
-        lp = np.trapz(lpd, f[loco_idx])
-        fp = np.trapz(fpd, f[freeze_idx])
-        fi.append(fp / (lp + np.spacing(1)))
-
-    fi = np.array(fi)
-    nmaf = 5
-    mafk = np.ones(nmaf) / nmaf
-    fi = np.convolve(fi, mafk, mode="same")
-
-    t = np.linspace(0, 1, len(fi) + 1)
-    return t[1:], apply_moore_fi_scaling(fi)
+    fi = apply_moore_fi_scaling(fi[idx])
+    return np.linspace(0, 1, len(fi)), fi
 
 
 def generate_freqs_locomotion_and_freeze_band_indices(
@@ -457,8 +486,10 @@ def combine_fis(
     to have them feature the same number of samples and then taking the maximum
     at each sample.
 
-    @param fi_a First FI array
-    @param fi_b Second FI array
+    @param lt First (left) FI time
+    @param lfi First (left) FI array
+    @param rt Second (right) FI time
+    @param rfi Second (right) FI array
     @return
     """
 
