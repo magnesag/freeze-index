@@ -9,6 +9,7 @@
     @copyright Magnes AG, (C) 2024.
 """
 import enum
+import json
 import logging
 import os
 import warnings
@@ -35,6 +36,8 @@ PARAM_NAMES_AND_LABELS = {
     "NW": ("bandwidth", "$B$ [--]"),
 }
 PROXY = dataio.ProxyChoice.SHANK_Y
+RES_SUBDIR = os.path.join(cfg.RES_DIR, "param-sweep")
+RES_FN = os.path.join(RES_SUBDIR, "fi-std.json")
 
 
 class SweepParam(str, enum.Enum):
@@ -48,7 +51,8 @@ def setup() -> list[str]:
 
     @return List of datafiles
     """
-    logger.info(__doc__)
+    if __name__ == "__main__":
+        logger.info(__doc__)
     warnings.filterwarnings("error")
     for kk, vv in cfg.PLOT_RC.items():
         pltlib.rc(kk, **vv)
@@ -91,11 +95,11 @@ def compare_fi_for_multitaper_parametric_sweep(
     @param standardize Whether to standardize the FI values
     @param sweeping_param Parameter being swept
     """
-
+    res = {}
     for fn in fns:
         logger.info(f"Working on {os.path.basename(fn)}")
         _id = os.path.basename(fn).split(".")[0].lower()
-        dest_subdir = os.path.join(cfg.RES_DIR, "param-sweep", _id)
+        dest_subdir = os.path.join(RES_SUBDIR, _id)
         if not os.path.exists(dest_subdir):
             os.makedirs(dest_subdir)
 
@@ -108,6 +112,7 @@ def compare_fi_for_multitaper_parametric_sweep(
         fis = []
         for pval in PARAM_RANGES[sweeping_param]:
             multitaper_kwargs[sweeping_param] = pval
+            logger.info(f"Evaluating FI for p = {pval}")
             try:
                 fis.append(
                     eval_fi(
@@ -135,21 +140,29 @@ def compare_fi_for_multitaper_parametric_sweep(
                 flags,
                 standardized=standardize,
             )
+            res[_id] = {
+                "p": PARAM_RANGES[sweeping_param].tolist(),
+                "fi-sigma": [np.std(fi["fi"]) for fi in fis],
+            }
 
         if cfg.RUN_ONLY_ONE:
-            import sys
-
             logger.warning("Run only one is enabled, exiting")
-            sys.exit(0)
+            break
+
+    return res
 
 
 def main() -> None:
     files = setup()
+    res = {}
     for sp in SweepParam:
         logger.info(f"Sweeping {sp}")
-        compare_fi_for_multitaper_parametric_sweep(
+        res[sp] = compare_fi_for_multitaper_parametric_sweep(
             fns=files, standardize=False, sweeping_param=sp
         )
+
+    with open(RES_FN, "w") as fp:
+        json.dump(res, fp, indent=2)
 
 
 if __name__ == "__main__":
