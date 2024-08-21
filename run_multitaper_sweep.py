@@ -133,6 +133,7 @@ def compare_fi_for_multitaper_parametric_sweep(
                 PARAM_NAMES_AND_LABELS[sweeping_param],
                 dest_subdir,
                 flags,
+                standardized=standardize,
             )
 
         if cfg.RUN_ONLY_ONE:
@@ -147,7 +148,7 @@ def main() -> None:
     for sp in SweepParam:
         logger.info(f"Sweeping {sp}")
         compare_fi_for_multitaper_parametric_sweep(
-            fns=files, standardize=True, sweeping_param=sp
+            fns=files, standardize=False, sweeping_param=sp
         )
 
 
