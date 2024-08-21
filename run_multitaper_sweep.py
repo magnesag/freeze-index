@@ -95,7 +95,7 @@ def compare_fi_for_multitaper_parametric_sweep(
     for fn in fns:
         logger.info(f"Working on {os.path.basename(fn)}")
         _id = os.path.basename(fn).split(".")[0].lower()
-        dest_subdir = os.path.join(cfg.RES_DIR, f"param-sweep-{sweeping_param}", _id)
+        dest_subdir = os.path.join(cfg.RES_DIR, "param-sweep", _id)
         if not os.path.exists(dest_subdir):
             os.makedirs(dest_subdir)
 

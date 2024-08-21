@@ -294,11 +294,15 @@ def draw_fi_spectra(estimates: dict[str, np.ndarray], dest: str):
         freqs.append(f.copy())
         names.append(name.title())
 
-    colors = iter(cfg.generate_n_colors_from_cmap(len(estimates) - 1, cfg.COMP_CM))
+    n = len(estimates)
+    if "Multitaper" in names:
+        n -= 1
+
+    colors = iter(cfg.generate_n_colors_from_cmap(n, cfg.COMP_CM))
     fig, axs = pltlib.subplots()
     for f, x, name in zip(freqs, spectra, names):
         kwargs = {"label": name.title(), "ls": "-", "lw": 3}
-        if name.lower() == "multitaper":
+        if name == "Multitaper":
             kwargs.update({"lw": 3, "c": "black", "zorder": 10, "ls": "--"})
         else:
             kwargs.update({"c": next(colors)})
@@ -374,7 +378,8 @@ def draw_sweep_comparison(
     axs.set(
         xlim=(estimates[0]["t"][0], estimates[0]["t"][-1]),
         xlabel="Recording time [s]",
-        ylabel=param_name_label[1],
+        ylabel="FI [--]",
+        ylim=cfg.STANDARDIZED_AX_LIM,
     )
     fig.tight_layout()
     fn = f"{param_name_label[0]}-sweep"
