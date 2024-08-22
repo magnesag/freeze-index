@@ -341,7 +341,7 @@ def compare_fis(
     dest: str,
     flag: np.ndarray,
     standardized: bool = True,
-):
+) -> tuple[ComparisonMetrics, list[str]]:
     """!Compare FIs
 
     @param t Time array
@@ -364,6 +364,7 @@ def compare_fis(
     draw_all_comparisons(xs, comparison_metrics, names, dest)
     draw_fi_spectra(estimates, dest)
     pltlib.close("all")
+    return comparison_metrics, names
 
 
 def draw_sweep_comparison(
