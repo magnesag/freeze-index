@@ -95,7 +95,7 @@ def stat_test(pairwise_metric: dict[str, list[float]]) -> dict[str,]:
     return res
 
 
-def draw_dists(
+def draw_dis_dists(
     pairwise_metric: dict[str, list[float]],
     tstats: dict[str, Any],
     metric: str,
@@ -164,15 +164,25 @@ def draw_dists(
     fig.savefig(os.path.join(dest, f"{metric}-diff-significance"))
     pltlib.close(fig)
 
+    """     ab  ac  bc
+        ab  0   0   1
+
+        ac  0   0   1       -> A
+
+        bc  1   1   0
+                                                                    6
+                                                  4           9     -    3
+        overall rate: 100 * 2 / 3 = 100 * 0.5 * sum(A) / ((A.size - a.shape[0]) * 0.5)
+
+
+        a rate:       100 * 2 / 3 = 100 * sum(A["a...",:]) /
+
+    """
+
     multitaper_entries_idx = [
         ii for ii in range(len(pairs)) if "multitaper" in pairs[ii]
     ]
-    logger.debug(f"Pairs: {pairs}, MT entries idx: {multitaper_entries_idx}")
     multitaper_rows = np.concatenate([pmask[ii] for ii in multitaper_entries_idx])
-    logger.debug(len(multitaper_rows))
-    logger.debug(np.sum([ii for ii in multitaper_entries_idx]))
-
-    logger.debug(f"MT significance entries: {multitaper_rows}")
     multitaper_nh_rejection_rate = (
         0.5
         * np.sum(multitaper_rows)
@@ -181,6 +191,11 @@ def draw_dists(
     null_hypothesis_rejection_rate = (
         0.5 * np.sum(pmask) / (0.5 * (pmask.size - len(pairs)))
     )
+
+    logger.debug(f"Pairs: {pairs}, MT entries idx: {multitaper_entries_idx}")
+    logger.debug(len(multitaper_rows))
+    logger.debug(np.sum([ii for ii in multitaper_entries_idx]))
+    logger.debug(f"MT significance entries: {multitaper_rows}")
     logger.info(
         f"Null-hypothesis rejeciton rate: {null_hypothesis_rejection_rate*100:.2f}%"
     )
@@ -190,6 +205,7 @@ def draw_dists(
 
 
 def visualize_comparison_metrics_res(subdir: str):
+    """!Visualize comparison metrics and evaluate cross-file metrics"""
     data = load_and_sort_comp_res(subdir)
     logger.debug(data)
     testres = {}
@@ -197,10 +213,14 @@ def visualize_comparison_metrics_res(subdir: str):
         logger.info(f"Performing statistical test on {metric}")
         testres[metric] = stat_test(data[metric])
         logger.debug(testres[metric])
-        draw_dists(data[metric], testres[metric], metric, subdir)
+        draw_dis_dists(data[metric], testres[metric], metric, subdir)
 
 
 def visualize_full_res(subdir: str):
+    """!Visualize analysis from aggregated data (FI concatenation across all files)
+
+    @param subdir
+    """
     logger.info("Full FI distributions visualization")
     logger.info("Loading data")
     data = load_full_res(subdir)

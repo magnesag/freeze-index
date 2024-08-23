@@ -37,7 +37,7 @@ PARAM_NAMES_AND_LABELS = {
 }
 PROXY = dataio.ProxyChoice.SHANK_Y
 RES_SUBDIR = os.path.join(cfg.RES_DIR, "param-sweep")
-RES_FN = os.path.join(RES_SUBDIR, "fi-std.json")
+RES_FN = os.path.join(RES_SUBDIR, "fis.json")
 
 
 class SweepParam(str, enum.Enum):
@@ -142,7 +142,7 @@ def compare_fi_for_multitaper_parametric_sweep(
             )
             res[_id] = {
                 "p": PARAM_RANGES[sweeping_param].tolist(),
-                "fi-sigma": [np.std(fi["fi"]) for fi in fis],
+                "fi": [fi["fi"].tolist() for fi in fis],
             }
 
         if cfg.RUN_ONLY_ONE:
