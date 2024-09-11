@@ -105,7 +105,7 @@ def compute_fi_free_window(
     @param fs Sampling frequency, optional. Default 100 Hz
     @return t, FI
     """
-    win = signal.windows.hann(w, sym=False)
+    win = signal.windows.boxcar(w, sym=False)
     stf = signal.ShortTimeFFT(
         win,
         max(w // HOP_DIV, 1),
@@ -201,24 +201,26 @@ def compute_bachlin_fi(
     windowing is done in steps of 0.5 seconds.
 
     Original MATLAB code (commented code and excessive blank lines removed)
+
+    ```matlab
     function res = x_fi(data,SR,stepSize)
         NFFT = 256;
-        locoBand=[0.5 3];
-        freezeBand=[3 8];
-        windowLength=256;
+        locoBand = [0.5 3];
+        freezeBand = [3 8];
+        windowLength = 256;
 
         f_res = SR / NFFT;
-        f_nr_LBs  = round(locoBand(1)   / f_res);
-        f_nr_LBs( f_nr_LBs==0 ) = [];
-        f_nr_LBe  = round(locoBand(2)   / f_res);
-        f_nr_FBs  = round(freezeBand(1) / f_res);
-        f_nr_FBe  = round(freezeBand(2) / f_res);
-        d = NFFT/2;
+        f_nr_LBs  = round(locoBand(1) / f_res);
+        f_nr_LBs(f_nr_LBs==0) = [];
+        f_nr_LBe = round(locoBand(2) / f_res);
+        f_nr_FBs = round(freezeBand(1) / f_res);
+        f_nr_FBe = round(freezeBand(2) / f_res);
+        d = NFFT / 2;
 
         % Online implementation
         % jPos is the current position, 0-based, we take a window
-        jPos = windowLength+1;      % This should not be +1 but we follow Baechlin's implementation.
-        i=1;
+        jPos = windowLength + 1;
+        i = 1;
 
         % Iterate the FFT windows
         while jPos <= length(data)
@@ -231,30 +233,27 @@ def compute_bachlin_fi(
             y = y - mean(y); % make signal zero-mean
 
             % Compute FFT
-            Y = fft(y,NFFT);
+            Y = fft(y, NFFT);
             Pyy = Y.* conj(Y) / NFFT;
 
-
             % --- calculate sumLocoFreeze and freezeIndex ---
-            areaLocoBand   = x_numericalIntegration( Pyy(f_nr_LBs:f_nr_LBe), SR );
-            areaFreezeBand = x_numericalIntegration( Pyy(f_nr_FBs:f_nr_FBe),  SR );
+            areaLocoBand   = x_numericalIntegration(Pyy(f_nr_LBs:f_nr_LBe), SR);
+            areaFreezeBand = x_numericalIntegration(Pyy(f_nr_FBs:f_nr_FBe),  SR);
 
             sumLocoFreeze(i) = areaFreezeBand + areaLocoBand;
 
             freezeIndex(i) = areaFreezeBand/areaLocoBand;
             % --------------------
-
-
             % next window
             jPos = jPos + stepSize;
             i = i + 1;
-            %break;
         end
 
         res.sum = sumLocoFreeze;
         res.quot = freezeIndex;
         res.time = time;
     end
+    ```
 
     Moore scaling is applied in this verison of the implementation.
 
