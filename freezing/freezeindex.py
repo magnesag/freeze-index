@@ -352,7 +352,7 @@ def compute_multitaper_fi(
     proxy: np.ndarray,
     fs: float = 100.0,
     dt: float = 5,
-    L: int = 8,
+    L: int = 4,
     NW: float = 2.5,
     nmaf: int = 11,
 ) -> tuple[np.ndarray, np.ndarray]:
