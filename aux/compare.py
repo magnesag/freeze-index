@@ -9,14 +9,19 @@
 """
 
 import dataclasses
+import logging
 import os
 
 import matplotlib.pyplot as pltlib
 import matplotlib.colors as mcols
 import numpy as np
 from sklearn import metrics
+from scipy import signal
 
 from aux import cfg
+
+
+logger = logging.getLogger(__name__)
 
 
 @dataclasses.dataclass
@@ -140,8 +145,10 @@ def draw_all_comparisons(
 
     @param xs Dictionary of proxy values
     @param metrics Comparison metrics
+    @param names Case names
     @param dest Image file destination (directory)
     """
+    logger.info("Drawing direct comparison")
     n_variants = xs.shape[0]
     fig, axs = pltlib.subplots(
         n_variants, n_variants, figsize=(12, 12), sharex=True, sharey=True
@@ -206,9 +213,9 @@ def draw_all_comparisons(
 def mark_fog_regions_on_axs(t: np.ndarray, flag: np.ndarray, axs: pltlib.axes):
     """!Mark FOG region on axes
 
-    @param t
-    @param flag
-    @param axs
+    @param t Time array
+    @param flag FOG flag array
+    @param axs Axes on whicht to draw FOG regions
     """
     fog_starts = np.arange(len(flag) - 1)[np.diff(flag) > 0]
     fog_stops = np.arange(len(flag) - 1)[np.diff(flag) < 0]
@@ -235,18 +242,13 @@ def overlay(
     - If 'dest' is provided, the file is saved in that directory; otherwise, it's saved
       in the current working directory.
 
-    Notes:
-    - The 'multitaper' method, if present in estimates, is plotted with a thicker black line
-      and brought to the front of the plot.
-    - FOG periods are highlighted with gray shading on the plot.
-    - The legend is positioned above the plot for clarity.
-
     @param t 1D array of time values corresponding to the FI estimates.
     @param estimates A dictionary where keys are method names (e.g., 'multitaper') and values are  dictionaries containing 't' (time) and 'fi' (freeze index) arrays.
     @param flag 1D boolean array indicating the presence of FOG (True) or absence (False) at each time point.
     @param dest Destination directory for saving the plot. If None, saves in the current directory. Default is None.
     @param standardized If True, standardized FI values are assumed and includes this in the filename and y-axis label. Default is False.
     """
+    logger.info("Drawing ovelray comparison")
     YLABEL = "Standardized FI [-]" if standardized else "FI [-]"
     fn = f"fi-overlay-standardized" if standardized else f"fi-overlay"
     n = len(estimates)
@@ -257,9 +259,9 @@ def overlay(
     fig, axs = pltlib.subplots()
     mark_fog_regions_on_axs(t, flag, axs)
     for case, vals in estimates.items():
-        kwargs = {"label": case.title(), "ls": "--"}
+        kwargs = {"label": case.title(), "ls": "-", "lw": 3}
         if case == "multitaper":
-            kwargs.update({"lw": 2, "c": "black", "zorder": 10, "ls": "--"})
+            kwargs.update({"lw": 2, "c": "black", "zorder": 10, "ls": "-"})
         else:
             kwargs.update({"c": next(colors)})
 
@@ -278,15 +280,77 @@ def overlay(
         fig.savefig(os.path.join(dest, fn))
 
 
+def draw_fi_spectra(estimates: dict[str, np.ndarray], dest: str):
+    """!Draw spectra of the FI estimates
+
+    @param estimates FI estimates
+    @param dest Destination where to store plot
+    """
+    logger.info("Drawing spectra")
+    spectra = []
+    freqs = []
+    names = []
+    nperseg = 256
+    for name, x in estimates.items():
+        try:
+            fs = 1 / np.mean(np.diff(x["t"]))
+            f, X = signal.welch(x["fi"], fs=fs, nperseg=nperseg)
+        except UserWarning:
+            f, X = [], []
+
+        spectra.append(X.copy())
+        freqs.append(f.copy())
+        names.append(name.title())
+
+    n = len(estimates)
+    if "Multitaper" in names:
+        n -= 1
+
+    colors = iter(cfg.generate_n_colors_from_cmap(n, cfg.COMP_CM))
+    fig, axs = pltlib.subplots()
+    for f, x, name in zip(freqs, spectra, names):
+        kwargs = {"label": name.title(), "ls": "-", "lw": 3}
+        if name == "Multitaper":
+            kwargs.update({"lw": 3, "c": "black", "zorder": 10, "ls": "--"})
+        else:
+            kwargs.update({"c": next(colors)})
+
+        axs.plot(f, x, **kwargs)
+
+    axs.set(
+        xscale="log",
+        yscale="log",
+        xlabel="Frequency [Hz]",
+        ylabel=r"$\rm PSD(FI)$ [--]",
+        xlim=(1e-2, 1e1),
+        ylim=(1e-5, 1e2),
+    )
+    axs.grid(True, which="both")
+    axs.legend(loc="upper left", bbox_to_anchor=(1, 1))
+    fig.tight_layout()
+    fn = "fi-spectra"
+    if dest is None:
+        fig.savefig(fn)
+    else:
+        fig.savefig(os.path.join(dest, fn))
+
+
 def compare_fis(
     t: np.ndarray,
     estimates: dict[str, dict[str, np.ndarray]],
     dest: str,
     flag: np.ndarray,
     standardized: bool = True,
-):
-    """!Compare FIs"""
+) -> tuple[ComparisonMetrics, list[str]]:
+    """!Compare FIs
 
+    @param t Time array
+    @param estimates FI estimates
+    @param dest Destination where to store images (plots)
+    @param flag FOG signal array
+    @param standardized Whether FIs are standardized
+    """
+    logger.info("Comparing FIs")
     n = max(len(case["fi"]) for case in estimates.values())
     xs = np.zeros((len(estimates), n))
     names = []
@@ -298,7 +362,9 @@ def compare_fis(
     comparison_metrics.visualize(dest)
     overlay(t, estimates, flag, dest, standardized)
     draw_all_comparisons(xs, comparison_metrics, names, dest)
+    draw_fi_spectra(estimates, dest)
     pltlib.close("all")
+    return comparison_metrics, names
 
 
 def draw_sweep_comparison(
@@ -308,8 +374,20 @@ def draw_sweep_comparison(
     param_name_label: tuple[str, str],
     dest: str = None,
     flags: np.ndarray = None,
+    standardized: bool = True,
 ):
-    """!Draw sweep comparison"""
+    """!Draw sweep comparison
+
+    @param t Time array
+    @param param_values Sweep parameter values
+    @param estimates FI estimates for each parameter value
+    @param param_name_label Parameter-name and axis-label pairs
+    @param dest Destination where to store plots
+    @param flags FOG regions signal
+    @param standardized Whether the FIs are standardized
+    """
+    logger.info("Drawing sweep plot")
+    fn = f"{param_name_label[0]}-sweep"
     colors = cfg.generate_n_colors_from_cmap(len(param_values), cfg.SWEEP_CM)
     fig, axs = pltlib.subplots()
     for ii, est in enumerate(estimates):
@@ -328,10 +406,14 @@ def draw_sweep_comparison(
     axs.set(
         xlim=(estimates[0]["t"][0], estimates[0]["t"][-1]),
         xlabel="Recording time [s]",
-        ylabel=param_name_label[1],
+        ylabel="FI [--]",
     )
+
+    if standardized:
+        axs.set_ylim(cfg.STANDARDIZED_AX_LIM)
+        fn += "-standardized"
+
     fig.tight_layout()
-    fn = f"{param_name_label[0]}-sweep"
     if not dest is None:
         fn = os.path.join(dest, fn)
 

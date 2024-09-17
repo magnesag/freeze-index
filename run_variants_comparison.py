@@ -8,6 +8,7 @@
     @author A. Schaer
     @copyright Magnes AG, (C) 2024.
 """
+import json
 import logging
 import os
 import warnings
@@ -74,7 +75,8 @@ def compare_implementations_for_proxy(
     @param standardize Whether to standardize the FI values
     @param proxy_choice Proxy signal of choice
     """
-
+    cres = {}
+    all_fis = {}
     for fn in fns:
         logger.info(f"Working on {os.path.basename(fn)}")
         data = dataio.load_daphnet_txt(fn)
@@ -95,15 +97,31 @@ def compare_implementations_for_proxy(
             )
             continue
 
-        compare.compare_fis(
+        for variant, value in fis.items():
+            if variant not in all_fis.keys():
+                all_fis[variant] = value["fi"].copy().tolist()
+            else:
+                all_fis[variant] += value["fi"].copy().tolist()
+
+        fres = compare.compare_fis(
             data.t, fis, dest_subdir, data.flag, standardized=standardize
         )
+        cres[_id] = {
+            "names": fres[1],
+            "mad": fres[0].mad.tolist(),
+            "rho": fres[0].rho.tolist(),
+            "r2": fres[0].r2.tolist(),
+        }
 
         if cfg.RUN_ONLY_ONE:
-            import sys
-
             logger.warning("Run only one is enabled, exiting")
-            sys.exit(0)
+            break
+
+    with open(os.path.join(dest_subdir, "..", "comp-res.json"), "w") as fp:
+        json.dump(cres, fp, indent=2)
+
+    with open(os.path.join(dest_subdir, "..", "all-fis.json"), "w") as fp:
+        json.dump(all_fis, fp, indent=2)
 
 
 def main() -> None:
