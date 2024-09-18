@@ -7,14 +7,16 @@
 """
 
 import os
+
+import sys
 import unittest as ut
 
 import matplotlib.pyplot as pltlib
 import numpy as np
 
-from .. import freezeindex as frz
 
 FILE_DIR = os.path.abspath(os.path.dirname(__file__))
+ROOT = os.path.join(FILE_DIR, "..", "..")
 RES_DIR = os.path.join(FILE_DIR, "res")
 PLT_RC = {
     "figure": {"figsize": (10, 5)},
@@ -22,6 +24,11 @@ PLT_RC = {
     "savefig": {"format": "png", "dpi": 300},
     "text": {"usetex": False},
 }
+
+
+sys.path.append(ROOT)
+
+import freezing.freezeindex as frz
 
 for kk, vv in PLT_RC.items():
     pltlib.rc(kk, **vv)
