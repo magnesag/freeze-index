@@ -78,48 +78,52 @@ def compare_implementations_for_proxy(
     cres = {}
     all_fis = {}
     for fn in fns:
-        logger.info(f"Working on {os.path.basename(fn)}")
-        data = dataio.load_daphnet_txt(fn)
-        fs = data.get_fs()
-        x = data.get_proxy(proxy_choice)
-
-        _id = os.path.basename(fn).split(".")[0].lower()
-        dest_subdir = os.path.join(cfg.RES_DIR, proxy_choice.value, _id)
-        if not os.path.exists(dest_subdir):
-            os.makedirs(dest_subdir)
-
-        logger.debug(f"Sampling frequency detected to be {fs:.2f} Hz")
         try:
-            fis = eval_fis(data.t, x, fs, standardize=standardize)
-        except RuntimeWarning as e:
-            logger.error(
-                f"Exception {e} raised during evaluation of {fn} - skipping file"
+            logger.info(f"Working on {os.path.basename(fn)}")
+            data = dataio.load_daphnet_txt(fn)
+            fs = data.get_fs()
+            x = data.get_proxy(proxy_choice)
+
+            _id = os.path.basename(fn).split(".")[0].lower()
+            dest_subdir = os.path.join(cfg.RES_DIR, proxy_choice.value, _id)
+            if not os.path.exists(dest_subdir):
+                os.makedirs(dest_subdir)
+
+            logger.debug(f"Sampling frequency detected to be {fs:.2f} Hz")
+            try:
+                fis = eval_fis(data.t, x, fs, standardize=standardize)
+            except RuntimeWarning as e:
+                logger.error(
+                    f"Exception {e} raised during evaluation of {fn} - skipping file"
+                )
+                continue
+
+            for variant, value in fis.items():
+                if variant not in all_fis.keys():
+                    all_fis[variant] = value["fi"].copy().tolist()
+                else:
+                    all_fis[variant] += value["fi"].copy().tolist()
+
+            fres = compare.compare_fis(
+                data.t, fis, dest_subdir, data.flag, standardized=standardize
             )
-            continue
+            _ = compare.compute_and_visualize_ious(fres[0], dest_subdir)
+            cres[_id] = {
+                "names": fres[1],
+                "mad": fres[0].mad.tolist(),
+                "rho": fres[0].rho.tolist(),
+                "r2": fres[0].r2.tolist(),
+                "iou": fres[0].compute_metrics_iou("multitaper"),
+            }
+            with open(os.path.join(dest_subdir, "comp-res.json"), "w") as fp:
+                json.dump(cres[_id], fp, indent=2)
 
-        for variant, value in fis.items():
-            if variant not in all_fis.keys():
-                all_fis[variant] = value["fi"].copy().tolist()
-            else:
-                all_fis[variant] += value["fi"].copy().tolist()
+            if cfg.RUN_ONLY_ONE:
+                logger.warning("Run only one is enabled, exiting")
+                break
 
-        fres = compare.compare_fis(
-            data.t, fis, dest_subdir, data.flag, standardized=standardize
-        )
-        _ = compare.compute_and_visualize_ious(fres[0], dest_subdir)
-        cres[_id] = {
-            "names": fres[1],
-            "mad": fres[0].mad.tolist(),
-            "rho": fres[0].rho.tolist(),
-            "r2": fres[0].r2.tolist(),
-            "iou": fres[0].compute_metrics_iou("multitaper"),
-        }
-        with open(os.path.join(dest_subdir, "comp-res.json"), "w") as fp:
-            json.dump(cres[_id], fp, indent=2)
-
-        if cfg.RUN_ONLY_ONE:
-            logger.warning("Run only one is enabled, exiting")
-            break
+        except IndexError as e:
+            pass
 
     with open(os.path.join(dest_subdir, "..", "comp-res.json"), "w") as fp:
         json.dump(cres, fp, indent=2)

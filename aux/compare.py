@@ -82,7 +82,10 @@ class ComparisonMetrics:
             cmap="Wistia",
         )
         fig.colorbar(img, ax=axs, label="MAD [-]", shrink=0.73)
-        TEXT_FNTSZ = cfg.PLOT_RC["font"]["size"] * 0.6
+        if "multitaper" in self.names:
+            TEXT_FNTSZ = min(cfg.PLOT_RC["font"]["size"], 32 / self._n)
+        else:
+            TEXT_FNTSZ = cfg.PLOT_RC["font"]["size"] * 0.6
         font_dicts = (
             {"weight": "bold", "color": "white", "size": TEXT_FNTSZ},
             {"size": TEXT_FNTSZ},
@@ -312,9 +315,11 @@ def overlay(
     fig, axs = pltlib.subplots()
     mark_fog_regions_on_axs(t, flag, axs)
     for case, vals in estimates.items():
-        kwargs = {"label": case.title(), "ls": "-", "lw": 3}
+        kwargs = {"label": case.title(), "ls": "-", "lw": 3, "zorder": 5}
         if case == "multitaper":
             kwargs.update({"lw": 2, "c": "black", "zorder": 10, "ls": "-"})
+        elif case == "zach":
+            kwargs.update({"c": next(colors), "zorder": 1})
         else:
             kwargs.update({"c": next(colors)})
 

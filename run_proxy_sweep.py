@@ -127,7 +127,7 @@ def compare_fi_for_proxys(
                 res["names"],
             )
             comp.visualize(dest=dest_subdir)
-            ious = compute_and_visualize_ious(comp, dest_subdir)
+            ious = compare.compute_and_visualize_ious(comp, dest_subdir)
 
         if cfg.RUN_ONLY_ONE:
             import sys
@@ -141,7 +141,7 @@ def main() -> None:
     compare_fi_for_proxys(
         fns=files,
         standardize=True,
-        force=False,
+        force=True,
     )
 
 

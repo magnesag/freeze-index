@@ -148,9 +148,9 @@ def load_daphnet_txt(fn: str) -> DaphnetRaw:
             continue
 
         t.append(cfg.MS2S * float(nibbles[0]))
-        lxl.append([cfg.MG2MPS2 * float(n) for n in nibbles[1:4]])
+        sxl.append([cfg.MG2MPS2 * float(n) for n in nibbles[1:4]])
         txl.append([cfg.MG2MPS2 * float(n) for n in nibbles[4:7]])
-        sxl.append([cfg.MG2MPS2 * float(n) for n in nibbles[7:10]])
+        lxl.append([cfg.MG2MPS2 * float(n) for n in nibbles[7:10]])
         flag.append(int(nibbles[10]))
 
     flag = np.array(flag, dtype=int)
