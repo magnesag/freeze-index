@@ -6,7 +6,7 @@
     such as the freezing index by Moore, the one by Bachlin, the one by
     Cockx, and the multitaper FI introduced by Magnes AG.
 
-    @author A. Schaer
+    @author A. Schaer, C. Mangiante
     @copyright Magnes AG, (C) 2024.
 """
 
@@ -308,7 +308,7 @@ def compute_cockx_fi(
     * An overlap of W/2 was used
     * Hann windows are applied to the windows, without any additional detrending step
     * PSD computed as squared FFT magnitude
-    * The freezing band is (3.5, 8) Hz
+    * The freezing band, as per the paper, is (3.5, 8) Hz, although the MATLAB code uses (3, 8) Hz.
 
     @param proxy Proxy signal from where to derive FI, originally shin vertical acceleration
     @param fs Sampling frequency
