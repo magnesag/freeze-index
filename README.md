@@ -4,18 +4,32 @@ This repository contains the code inherent to Magnes' review and exploration of 
 in [1]. The implementations reported here in are the ones introduced by Bachlin [2], Cockx [3], Zach [4], in addition
 to Moore's [1] and the newly proposed multitaper method.
 
-## Data
-In order to be able to run the comparisons and evaluate the various configurations, the Daphnet data is required to
-be stored in the subdirectory `data/`. The data files (TXT) files are gitignored. The data can be obtained by visiting
+## Setup
 
-https://archive.ics.uci.edu/dataset/245/daphnet+freezing+of+gait
+### Requirements
+1. Python >=3.9
+2. (optional) Latex -- for paper-ready plots set `USE_TEX=True` in `aux/cfg.py`
 
-accessed on 19.08.2024.
+### Daphnet dataset
+The Daphnet Freezing of Gait dataset is used for comparisons. It has a permissive CC BY 4.0 license and the data can be found under `data/` folder.
+
+Source (accessed on 19.08.2024): https://archive.ics.uci.edu/dataset/245/daphnet+freezing+of+gait
+
+### Python environment
+To manage Python library dependencies, Python virtual environment is used. Run the following from the root project directory:
+```sh
+# Create Python virtual environment
+python3 -m venv venv
+# Activate it
+. ./venv/bin/activate
+# Install dependencies
+pip install -r requirements.txt
+```
 
 ## Comparing Definitions
-To compare FI definitions on the Daphnet dataset, run the script `daphnet_evaluation.py` from root as
+To compare FI definitions on the Daphnet dataset, run the script `run_variants_comparison.py` from root project directory as
 ```bash
-python3.9 run_variants_comparison.py
+python run_variants_comparison.py
 ```
 The script will take care of parsing all data files, running the FI computations and comparisons, and save the
 resulting plots in the `res/` subdirectory. The `res/` subdirectory is not tracked and automatically generated
@@ -25,13 +39,13 @@ if inexistent by the script. Results are sorted by input file and proxy choice.
 To run the multitaper parametric sweep and thus to inspect the effects of each parameter of the multitaper method
 on the FI run
 ```bash
-python3.9 run_multitaper_sweep.py
+python run_multitaper_sweep.py
 ```
 
 ## Proxy Evaluation
 To evaluate the effect of proxy choice on the FI for the multitaper definition, run
 ```bash
-python3.9 run_proxy_sweep.py
+python run_proxy_sweep.py
 ```
 
 ## References
