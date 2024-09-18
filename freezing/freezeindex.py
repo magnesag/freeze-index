@@ -6,7 +6,7 @@
     such as the freezing index by Moore, the one by Bachlin, the one by
     Cockx, and the multitaper FI introduced by Magnes AG.
 
-    @author A. Schaer, C. Mangiante
+    @author A. Schaer, C. Mangiante, R. Sobkuliak, H. Maurenbrecher
     @copyright Magnes AG, (C) 2024.
 """
 

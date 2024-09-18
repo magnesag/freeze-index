@@ -4,7 +4,7 @@
 
     This module contains functions for reading and writing data.
 
-    @author A. Schaer
+    @author A. Schaer, R. Sobkuliak
     @copyright Magnes AG, (C) 2024.
 """
 
