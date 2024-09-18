@@ -13,7 +13,7 @@ import matplotlib.pyplot as pltlib
 ## Paths
 FILE_DIR = os.path.normpath(os.path.abspath(os.path.dirname(__file__)))
 ROOT_DIR = os.path.normpath(os.path.join(FILE_DIR, ".."))
-DATA_DIR = os.path.join(ROOT_DIR, "data")
+DATA_DIR = os.path.join(ROOT_DIR, "data", "dataset")
 RES_DIR = os.path.join(ROOT_DIR, "res")
 
 if not os.path.exists(RES_DIR):
@@ -34,13 +34,14 @@ MG2MPS2 = G * 1e-3
 
 ## Run options
 RUN_ONLY_ONE = False
+USE_TEX = False
 
 ## Plotting options
 PLOT_RC = {
     "figure": {"figsize": (10, 5)},
     "savefig": {"format": "pdf", "dpi": 300},
     "font": {"family": "serif", "size": 16},
-    "text": {"usetex": True},
+    "text": {"usetex": USE_TEX},
 }
 SWEEP_CM = pltlib.cm.inferno
 COMP_CM = pltlib.cm.viridis
