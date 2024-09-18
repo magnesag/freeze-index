@@ -510,7 +510,9 @@ def compute_and_visualize_ious(
 
     for combo in itertools.combinations(ious.keys(), 2):
         a, b = combo
-        fig, axs = pltlib.subplots(figsize=(10, 8))
+        figx = 2 * len(comparison.names)
+        figy = 2 * (len(comparison.names) - 1)
+        fig, axs = pltlib.subplots(figsize=(figx, figy))
         for ii, name in enumerate(comparison.names):
             mk = name.split("-")[0]
             marker = markers[mk] if mk in markers.keys() else "o"
