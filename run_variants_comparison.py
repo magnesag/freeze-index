@@ -106,12 +106,16 @@ def compare_implementations_for_proxy(
         fres = compare.compare_fis(
             data.t, fis, dest_subdir, data.flag, standardized=standardize
         )
+        _ = compare.compute_and_visualize_ious(fres[0], dest_subdir)
         cres[_id] = {
             "names": fres[1],
             "mad": fres[0].mad.tolist(),
             "rho": fres[0].rho.tolist(),
             "r2": fres[0].r2.tolist(),
+            "iou": fres[0].compute_metrics_iou("multitaper"),
         }
+        with open(os.path.join(dest_subdir, "comp-res.json"), "w") as fp:
+            json.dump(cres[_id], fp, indent=2)
 
         if cfg.RUN_ONLY_ONE:
             logger.warning("Run only one is enabled, exiting")

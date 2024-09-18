@@ -9,6 +9,7 @@
 """
 
 import dataclasses
+import itertools
 import logging
 import os
 
@@ -57,7 +58,7 @@ class ComparisonMetrics:
             other_vals = []
             for ii in range(values.shape[0]):
                 for jj in range(ii + 1, values.shape[1]):
-                    if ii == case_idx:
+                    if ii == case_idx or jj == case_idx:
                         case_vals.append(values[ii, jj])
                     else:
                         other_vals.append(values[ii, jj])
@@ -70,7 +71,8 @@ class ComparisonMetrics:
         """!Visualize the comparison metrics"""
         minmad = np.nanmin(self.mad)
         maxmad = np.nanmax(self.mad)
-        fig, axs = pltlib.subplots(figsize=(8, 8))
+        figside = 5 / 5 * self._n
+        fig, axs = pltlib.subplots(figsize=(figside, figside))
         img = pltlib.imshow(
             self.mad,
             aspect="equal",
@@ -80,7 +82,7 @@ class ComparisonMetrics:
             cmap="Wistia",
         )
         fig.colorbar(img, ax=axs, label="MAD [-]", shrink=0.73)
-        TEXT_FNTSZ = min(cfg.PLOT_RC["font"]["size"], 64 / self._n)
+        TEXT_FNTSZ = cfg.PLOT_RC["font"]["size"] * 0.6
         font_dicts = (
             {"weight": "bold", "color": "white", "size": TEXT_FNTSZ},
             {"size": TEXT_FNTSZ},
@@ -97,6 +99,7 @@ class ComparisonMetrics:
                             rf"$R^2$ = {self.r2[kk,jj]:.2f}",
                         ]
                     )
+
                 else:
                     txt = rf"{self.mad[kk,jj]:.2f}"
 
@@ -199,8 +202,9 @@ def draw_all_comparisons(
     """
     logger.info("Drawing direct comparison")
     n_variants = xs.shape[0]
+    figside = 12 / 5 * n_variants
     fig, axs = pltlib.subplots(
-        n_variants, n_variants, figsize=(12, 12), sharex=True, sharey=True
+        n_variants, n_variants, figsize=(figside, figside), sharex=True, sharey=True
     )
     axs[0, 0].set(xlim=cfg.STANDARDIZED_AX_LIM, ylim=cfg.STANDARDIZED_AX_LIM)
     DOWNSAMPLE = max(int(len(xs[0]) / cfg.DIRECT_COMPARISON_MAX_PTS), 1)
@@ -468,3 +472,59 @@ def draw_sweep_comparison(
 
     fig.savefig(fn)
     pltlib.close(fig)
+
+
+def compute_and_visualize_ious(
+    comparison: ComparisonMetrics, dest: str
+) -> dict[str, list[float]]:
+    """!Compute and visualize IOUs"""
+    ious = {"mad": [], "rho": [], "r2": []}
+    for name in comparison.names:
+        mad, rho, r2 = comparison.compute_metrics_iou(name)
+        ious["mad"].append(mad)
+        ious["rho"].append(rho)
+        ious["r2"].append(r2)
+
+    if "multitaper" in [name.value for name in comparison.names]:
+        colors = np.vstack(
+            [
+                cfg.generate_n_colors_from_cmap(len(comparison.names) - 1, cfg.COMP_CM),
+                np.array([0, 0, 0, 1]),
+            ]
+        )
+    else:
+        colors = np.vstack(
+            [
+                cfg.generate_n_colors_from_cmap(len(comparison.names) // 3, cfg.COMP_CM)
+                for _ in range(3)
+            ]
+        )
+
+    markers = {"lumbar": "s", "thigh": "^", "shank": "o"}
+    labels = {"mad": "IOU(MAD)", "rho": r"IOU($\rho$)", "r2": r"IOU($R^2$)"}
+
+    for combo in itertools.combinations(ious.keys(), 2):
+        a, b = combo
+        fig, axs = pltlib.subplots(figsize=(10, 8))
+        for ii, name in enumerate(comparison.names):
+            mk = name.split("-")[0]
+            marker = markers[mk] if mk in markers.keys() else "o"
+            axs.plot(
+                ious[a][ii],
+                ious[b][ii],
+                marker=marker,
+                c=colors[ii],
+                ms=20,
+                mec="black",
+                label=name.title(),
+                ls="",
+            )
+
+        axs.grid(True)
+        axs.set(xlim=(0, 1), ylim=(0, 1), xlabel=labels[a], ylabel=labels[b])
+        axs.legend(loc="upper left", bbox_to_anchor=(1, 1))
+        fig.tight_layout()
+        pltlib.savefig(os.path.join(dest, f"iou-{a}-{b}"))
+        pltlib.close(fig)
+
+    return ious
