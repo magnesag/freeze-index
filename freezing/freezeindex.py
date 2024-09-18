@@ -21,6 +21,7 @@ from scipy import fft
 class FREQUENCY_RANGE(enum.Enum):
     LOCOMOTOR: tuple = (0.5, 3.0)
     FREEZING: tuple = (3.0, 8.0)
+    FREEZING_COCKX: tuple = (3.5, 8.0)
 
 
 class FI_THS(enum.Enum):
@@ -90,15 +91,17 @@ def compute_fi_free_window(
         by the square of the area under the spectra in the 'locomotor'
         band.
 
-    that is the ratio of the signal energy in the "freezing"
+    that is the ratio of the signal power in the "freezing"
     frequency band (3, 8) Hz to the "locomotor" frequency band (0.5, 3) Hz.
 
-    This function detaches from the original definitoin by allowing the
+    This function detaches from the original definition by allowing the
     computation of the FI for any window size (duration), and not only for
     6 s.
 
-    This function relies on a Hann window for tapering and uses constant detrending,
-    both operations were not explicitly mentioned in the paper.
+    The follow-up paper by Moore et al. (Autonomous identification of freezing
+    of gait in Parkinson's disease from lower-body segmental accelerometry,
+    2008) changed the locomotor band to (0, 3) Hz and the window size to
+    5 s.
 
     @param x Gait raw signal
     @param w Window width in number of samples
@@ -165,19 +168,17 @@ def apply_moore_fi_scaling(fi: np.ndarray) -> np.ndarray:
 def compute_moore_fi(
     proxy: np.ndarray, fs: float = 100.0
 ) -> tuple[np.ndarray, np.ndarray]:
-    """!Compute the scaled FI according to Moore et al
+    """!Compute the scaled FI according to Moore et al.
 
     This function computes the FI for a window of 6 seconds and scales the
     value by the Moore scaling.
-
-    In this implementation Tukey windows are used for tapering.
 
     @param proxy Proxy signal for FI computation. Originally: vertical acceleration.
     @param fs Signal sampling frequency
     @return t, Moore scaled FI
     """
-    WINDOW_SURATION_S = 6.0
-    w = int(WINDOW_SURATION_S * fs) + 1
+    WINDOW_DURATION_S = 6.0
+    w = int(WINDOW_DURATION_S * fs) + 1
     t, fi = compute_fi_free_window(proxy, w, fs)
     return t, apply_moore_fi_scaling(fi)
 
@@ -275,7 +276,7 @@ def compute_bachlin_fi(
             continue
 
         X = fft.fft(x - np.mean(x))
-        power_density = np.square(np.abs(X) / n)
+        power_density = np.square(np.abs(X)) / n
         lpd = power_density[loco_idx]
         fpd = power_density[freeze_idx]
         lp = np.trapz(lpd, f[loco_idx])
@@ -307,6 +308,7 @@ def compute_cockx_fi(
     * An overlap of W/2 was used
     * Hann windows are applied to the windows, without any additional detrending step
     * PSD computed as squared FFT magnitude
+    * The freezing band is (3.5, 8) Hz
 
     @param proxy Proxy signal from where to derive FI, originally shin vertical acceleration
     @param fs Sampling frequency
@@ -315,7 +317,12 @@ def compute_cockx_fi(
     COCKX_WINDOW_DURATION_S = 3.0
     n = round(COCKX_WINDOW_DURATION_S * fs) + 1
     fi = []
-    f, loco_idx, freeze_idx = generate_freqs_locomotion_and_freeze_band_indices(n, fs)
+    f, loco_idx, freeze_idx = generate_freqs_locomotion_and_freeze_band_indices(
+        n,
+        fs,
+        loco_f_range=FREQUENCY_RANGE.LOCOMOTOR,
+        freeze_f_range=FREQUENCY_RANGE.FREEZING_COCKX,
+    )
     w = signal.windows.hann(n, sym=False)
     for center_idx in range(n // 2, len(proxy) - n // 2, n // 2):
         x = proxy[center_idx - n // 2 : center_idx + 2 * (n + 1) // 4]
@@ -424,7 +431,10 @@ def compute_multitaper_fi(
 
 
 def generate_freqs_locomotion_and_freeze_band_indices(
-    nfft: int, fs: float
+    nfft: int,
+    fs: float,
+    loco_f_range: FREQUENCY_RANGE = FREQUENCY_RANGE.LOCOMOTOR,
+    freeze_f_range: FREQUENCY_RANGE = FREQUENCY_RANGE.FREEZING,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """!Generate frequencies, locomotion-band indices, and freezing-band indices
 
@@ -433,12 +443,8 @@ def generate_freqs_locomotion_and_freeze_band_indices(
     @return FFT frequency, locomotion index mask, freezing index mask
     """
     f = fft.fftfreq(nfft, d=1.0 / fs)
-    loco_idx = (f >= FREQUENCY_RANGE.LOCOMOTOR.value[0]) * (
-        f <= FREQUENCY_RANGE.LOCOMOTOR.value[1]
-    )
-    freeze_idx = (f <= FREQUENCY_RANGE.FREEZING.value[1]) * (
-        f >= FREQUENCY_RANGE.FREEZING.value[0]
-    )
+    loco_idx = (f >= loco_f_range.value[0]) * (f <= loco_f_range.value[1])
+    freeze_idx = (f <= freeze_f_range.value[1]) * (f >= freeze_f_range.value[0])
     return f, loco_idx, freeze_idx
 
 
