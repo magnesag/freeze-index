@@ -37,6 +37,33 @@ class ComparisonMetrics:
         """!Post-initialization"""
         self._n = len(self.names)
 
+    def __iter__(self):
+        for x in (self.mad, self.rho, self.r2):
+            yield x
+
+    def compute_metrics_iou(self, name: str) -> tuple[float, float, float]:
+        """!Compute the IOU of the spanned ranges when leaving the selected case out
+
+        @param name Name of the case to be compared to all others
+        @return IOU(MAD), IOU(rho), IOU(R2)
+        """
+        if name not in self.names:
+            raise ValueError(f"Provided case {name} is not in {self.names}")
+
+        res = []
+        case_idx = self.names.index(name)
+        for values in self:
+            case_vals = []
+            other_vals = []
+            for ii in range(1, values.shape[0]):
+                for jj in range(ii, values.shape[1]):
+                    if ii == case_idx:
+                        case_vals.append(values[ii, jj])
+                    else:
+                        other_vals.append(values[ii, jj])
+
+            res.append(self.compute_iou(case_vals, other_vals))
+
     def visualize(self, dest: str = None) -> None:
         """!Visualize the comparison metrics"""
         minmad = np.nanmin(self.mad)
@@ -85,6 +112,10 @@ class ComparisonMetrics:
             fig.savefig(f"similarity-matrix")
         else:
             fig.savefig(os.path.join(dest, f"similarity-matrix"))
+
+    @staticmethod
+    def compute_iou(seta: list[float], setb: list[float]) -> float:
+        return 0.0
 
 
 def standardize(x: np.ndarray) -> np.ndarray:

@@ -10,7 +10,7 @@ import unittest as ut
 
 import numpy as np
 
-from .. import compare
+from aux import compare
 
 
 class TestCompareFunctions(ut.TestCase):
@@ -68,3 +68,47 @@ class TestCompareFunctions(ut.TestCase):
         np.testing.assert_array_almost_equal(
             result.r2, np.array([[1, -0.5, -5], [-0.5, 1, -0.5], [-5, -0.5, 1]])
         )
+
+
+class TestComparisonMetrics(ut.TestCase):
+    def setUp(self):
+        self.names = ["a", "b", "c", "d"]
+        self.mad = np.array(
+            [
+                [0.0, 1.0, 1.0, 1.0],
+                [1.0, 0.0, 0.5, 0.25],
+                [1.0, 0.5, 0.0, 0.12],
+                [1.0, 0.25, 0.12, 0.0],
+            ]
+        )
+        self.rho = np.array(
+            [
+                [1.0, 0.5, 0.5, 0.5],
+                [0.5, 1.0, 0.7, 0.8],
+                [0.5, 0.7, 1.0, 0.9],
+                [0.5, 0.8, 0.9, 1.0],
+            ]
+        )
+        self.r2 = np.array(
+            [
+                [1.0, 0.2, 0.2, 0.2],
+                [0.2, 1.0, 0.7, 0.8],
+                [0.2, 0.7, 1.0, 0.9],
+                [0.2, 0.8, 0.9, 1.0],
+            ]
+        )
+        self.metrics = compare.ComparisonMetrics(
+            self.mad, self.rho, self.r2, self.names
+        )
+
+    def test_iterator(self):
+        cr = [x for x in self.metrics]
+        np.testing.assert_array_almost_equal(cr[0], self.mad)
+        np.testing.assert_array_almost_equal(cr[1], self.rho)
+        np.testing.assert_array_almost_equal(cr[2], self.r2)
+
+    def test_compute_metrics_iou(self):
+        pass
+
+    def test_compute_iou(self):
+        pass
