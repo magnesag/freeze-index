@@ -55,14 +55,16 @@ class ComparisonMetrics:
         for values in self:
             case_vals = []
             other_vals = []
-            for ii in range(1, values.shape[0]):
-                for jj in range(ii, values.shape[1]):
+            for ii in range(values.shape[0]):
+                for jj in range(ii + 1, values.shape[1]):
                     if ii == case_idx:
                         case_vals.append(values[ii, jj])
                     else:
                         other_vals.append(values[ii, jj])
 
             res.append(self.compute_iou(case_vals, other_vals))
+
+        return tuple(res)
 
     def visualize(self, dest: str = None) -> None:
         """!Visualize the comparison metrics"""
@@ -115,7 +117,23 @@ class ComparisonMetrics:
 
     @staticmethod
     def compute_iou(seta: list[float], setb: list[float]) -> float:
-        return 0.0
+        """!Compute the IOU of the ranges spanned by set A and set B
+
+        @param seta Elements of A
+        @param setb Elements of B
+        @return IOU or ranges spanned by A and B
+        """
+        maxa = max(seta)
+        maxb = max(setb)
+        mina = min(seta)
+        minb = min(setb)
+        maxmax = max(maxa, maxb)
+        minmin = min(mina, minb)
+        minmax = min(maxa, maxb)
+        maxmin = max(mina, minb)
+        union = maxmax - minmin
+        intersection = max(minmax - maxmin, 0)
+        return intersection / union if union > 0 else 0.0
 
 
 def standardize(x: np.ndarray) -> np.ndarray:
