@@ -79,16 +79,16 @@ class ComparisonMetrics:
             origin="upper",
             vmin=minmad,
             vmax=maxmad,
-            cmap="Wistia",
+            cmap=cfg.SIMILARITY_CM,
         )
         fig.colorbar(img, ax=axs, label="MAD [-]", shrink=0.73)
         if "multitaper" in self.names:
-            TEXT_FNTSZ = min(cfg.PLOT_RC["font"]["size"], 32 / self._n)
+            TEXT_FNTSZ = min(cfg.PLOT_RC["font"]["size"], 48 / self._n)
         else:
             TEXT_FNTSZ = cfg.PLOT_RC["font"]["size"] * 0.6
         font_dicts = (
-            {"weight": "bold", "color": "white", "size": TEXT_FNTSZ},
-            {"size": TEXT_FNTSZ},
+            {"weight": "heavy", "color": "black", "size": TEXT_FNTSZ, "rotation": 45},
+            {"size": TEXT_FNTSZ, "color": "white", "weight": "light", "rotation": 45},
         )
         for kk in range(self._n):
             for jj in range(self._n):
@@ -98,8 +98,8 @@ class ComparisonMetrics:
                 if jj > kk:
                     txt = "\n".join(
                         [
-                            rf"$\rho$ = {self.rho[kk,jj]:.2f}",
-                            rf"$R^2$ = {self.r2[kk,jj]:.2f}",
+                            rf"$\rho$={self.rho[kk,jj]:.2f}",
+                            rf"$R^2$={self.r2[kk,jj]:.2f}",
                         ]
                     )
 
@@ -308,20 +308,25 @@ def overlay(
     YLABEL = "Standardized FI [-]" if standardized else "FI [-]"
     fn = f"fi-overlay-standardized" if standardized else f"fi-overlay"
     n = len(estimates)
+    colors = cfg.generate_n_colors_from_cmap(n, cfg.COMP_CM)
     if "multitaper" in estimates.keys():
-        n -= 1
+        colors[-1] = cfg.MT_COLOR
 
-    colors = iter(cfg.generate_n_colors_from_cmap(n, cfg.COMP_CM))
+    colors = iter(colors)
     fig, axs = pltlib.subplots()
     mark_fog_regions_on_axs(t, flag, axs)
     for case, vals in estimates.items():
-        kwargs = {"label": case.title(), "ls": "-", "lw": 3, "zorder": 5}
+        kwargs = {
+            "label": case.title(),
+            "ls": "-",
+            "lw": 3,
+            "zorder": 5,
+            "c": next(colors),
+        }
         if case == "multitaper":
-            kwargs.update({"lw": 2, "c": "black", "zorder": 10, "ls": "-"})
+            kwargs.update({"lw": 2, "zorder": 10, "ls": "--"})
         elif case == "zach":
-            kwargs.update({"c": next(colors), "zorder": 1})
-        else:
-            kwargs.update({"c": next(colors)})
+            kwargs.update({"zorder": 1})
 
         axs.plot(vals["t"], vals["fi"], **kwargs)
 
@@ -361,17 +366,16 @@ def draw_fi_spectra(estimates: dict[str, np.ndarray], dest: str):
         names.append(name.title())
 
     n = len(estimates)
+    colors = cfg.generate_n_colors_from_cmap(n, cfg.COMP_CM)
     if "Multitaper" in names:
-        n -= 1
+        colors[-1] = cfg.MT_COLOR
 
-    colors = iter(cfg.generate_n_colors_from_cmap(n, cfg.COMP_CM))
+    colors = iter(colors)
     fig, axs = pltlib.subplots()
     for f, x, name in zip(freqs, spectra, names):
-        kwargs = {"label": name.title(), "ls": "-", "lw": 3}
+        kwargs = {"label": name.title(), "ls": "-", "lw": 3, "c": next(colors)}
         if name == "Multitaper":
-            kwargs.update({"lw": 3, "c": "black", "zorder": 10, "ls": "--"})
-        else:
-            kwargs.update({"c": next(colors)})
+            kwargs.update({"lw": 3, "zorder": 10, "ls": "--"})
 
         axs.plot(f, x, **kwargs)
 
@@ -491,31 +495,33 @@ def compute_and_visualize_ious(
         ious["r2"].append(r2)
 
     if "multitaper" in [name.value for name in comparison.names]:
-        colors = np.vstack(
-            [
-                cfg.generate_n_colors_from_cmap(len(comparison.names) - 1, cfg.COMP_CM),
-                np.array([0, 0, 0, 1]),
-            ]
-        )
+        colors = cfg.generate_n_colors_from_cmap(len(comparison.names), cfg.COMP_CM)
+        colors[-1] = cfg.MT_COLOR
     else:
         colors = np.vstack(
             [
-                cfg.generate_n_colors_from_cmap(len(comparison.names) // 3, cfg.COMP_CM)
-                for _ in range(3)
+                cfg.generate_n_colors_from_cmap(
+                    len(comparison.names) // len(ious), cfg.COMP_CM
+                )
+                for _ in range(len(ious))
             ]
         )
 
     markers = {"lumbar": "s", "thigh": "^", "shank": "o"}
     labels = {"mad": "IOU(MAD)", "rho": r"IOU($\rho$)", "r2": r"IOU($R^2$)"}
 
+    n = len(comparison.names)
+    figx = n if n < 7 else 10
+    figy = n - 1 if n < 7 else 9
     for combo in itertools.combinations(ious.keys(), 2):
         a, b = combo
-        figx = 2 * len(comparison.names)
-        figy = 2 * (len(comparison.names) - 1)
         fig, axs = pltlib.subplots(figsize=(figx, figy))
         for ii, name in enumerate(comparison.names):
             mk = name.split("-")[0]
             marker = markers[mk] if mk in markers.keys() else "o"
+            if name == "multitaper":
+                marker = "v"
+
             axs.plot(
                 ious[a][ii],
                 ious[b][ii],
