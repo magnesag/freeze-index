@@ -34,7 +34,7 @@ MG2MPS2 = G * 1e-3
 
 ## Run options
 RUN_ONLY_ONE = False
-USE_TEX = True
+USE_TEX = False
 
 ## Plotting options
 PLOT_RC = {
