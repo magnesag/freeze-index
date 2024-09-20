@@ -53,10 +53,10 @@ def compute_fi_variant(
     """!Compute the FI on x using the selected variant
 
     @param x Proxy signal
-    @param fs (default: 100.0) Sampling frequency in Hz
-    @param variant (default: "multitaper") Variant to use for FI computation
-    @param variant_kwargs (default: {}) Keyword arguments for the variant
-    @return
+    @param fs Sampling frequency in Hz (Default: 100.0)
+    @param variant Variant to use for FI computation (Default: "multitaper")
+    @param variant_kwargs Keyword arguments for the variant (Default: {})
+    @return t, FI
     """
     if variant == VARIANTS.MOORE:
         return compute_moore_fi(x, fs)
@@ -100,12 +100,12 @@ def compute_fi_free_window(
 
     The follow-up paper by Moore et al. (Autonomous identification of freezing
     of gait in Parkinson's disease from lower-body segmental accelerometry,
-    2008) changed the locomotor band to (0, 3) Hz and the window size to
+    2013) changed the locomotor band to (0, 3) Hz and the window size to
     5 s.
 
     @param x Gait raw signal
     @param w Window width in number of samples
-    @param fs Sampling frequency, optional. Default 100 Hz
+    @param fs Sampling frequency (Default 100 Hz)
     @return t, FI
     """
     win = signal.windows.boxcar(w, sym=False)
@@ -373,12 +373,14 @@ def compute_multitaper_fi(
     @param fs Sampling frequency
     @param dt Time window
     @param L Number of tapers
-    @param NW DPSS half-bandwidth parameter. 2.5 defualt
+    @param NW DPSS half-bandwidth parameter (Default 2.5)
+    @param nmaf Moving Average Filter size, if `None` no filtering is applied to the FI (Default: 11)
     @return t, FI
     """
     n = round(dt * fs) + 1
     nfft = 2 ** int(np.log2(n) + 3) - 1
     windows = signal.windows.dpss(n, NW, L, sym=False)
+
     spectrum = None
     for win in windows:
         stf = signal.ShortTimeFFT(
@@ -390,6 +392,7 @@ def compute_multitaper_fi(
             fft_mode="onesided",
         )
         ghost = stf.spectrogram(proxy, detr="linear")
+
         if spectrum is None:
             spectrum = ghost.copy()
         else:
@@ -412,9 +415,9 @@ def compute_multitaper_fi(
     locomotor_f = np.linspace(
         *FREQUENCY_RANGE.LOCOMOTOR.value, locomotor_ghost.shape[0]
     )
-    patho_f = np.linspace(*FREQUENCY_RANGE.FREEZING.value, freeze_ghost.shape[0])
+    freeze_f = np.linspace(*FREQUENCY_RANGE.FREEZING.value, freeze_ghost.shape[0])
     locomotor_power = np.trapz(locomotor_ghost, locomotor_f, axis=0)
-    freeze_power = np.trapz(freeze_ghost, patho_f, axis=0)
+    freeze_power = np.trapz(freeze_ghost, freeze_f, axis=0)
     fi = freeze_power / (locomotor_power + np.spacing(1))
 
     t = stf.t(len(proxy))
@@ -424,7 +427,7 @@ def compute_multitaper_fi(
 
     if isinstance(nmaf, int) and nmaf >= 3:
         mafk = np.ones(nmaf) / nmaf
-        fi = np.convolve(fi, mafk, mode="full")[nmaf // 2 : -nmaf // 2 + 1]
+        fi = np.convolve(fi, mafk, mode="same")
 
     fi = apply_moore_fi_scaling(fi[idx])
     return np.linspace(0, 1, len(fi)), fi

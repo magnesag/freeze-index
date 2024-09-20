@@ -38,7 +38,10 @@ class ComparisonMetrics:
         self._n = len(self.names)
 
     def visualize(self, dest: str = None) -> None:
-        """!Visualize the comparison metrics"""
+        """!Visualize the comparison metrics
+
+        @param dest optional destination to dump plot (Default: None)
+        """
         minmad = np.nanmin(self.mad)
         maxmad = np.nanmax(self.mad)
         fig, axs = pltlib.subplots(figsize=(8, 8))
@@ -348,7 +351,7 @@ def compare_fis(
     @param estimates FI estimates
     @param dest Destination where to store images (plots)
     @param flag FOG signal array
-    @param standardized Whether FIs are standardized
+    @param standardized Whether FIs are standardized (Default: True)
     """
     logger.info("Comparing FIs")
     n = max(len(case["fi"]) for case in estimates.values())

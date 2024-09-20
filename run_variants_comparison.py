@@ -19,7 +19,7 @@ import numpy as np
 from aux import cfg, dataio, compare
 from freezing import freezeindex as frz
 
-FILE_DIR = os.path.abspath(os.path.dirname(__file__))
+
 logging.basicConfig(level=logging.INFO, force=True, format=cfg.LOGGING_FMT)
 logger = logging.getLogger(__name__)
 
@@ -51,7 +51,8 @@ def eval_fis(
     @param t Time array of raw-data
     @param proxy Proxy signal from which to evaluate the FI
     @param fs sampling frequency
-    @param standardize Whether to standardize the FI values
+    @param standardize Whether to standardize the FI values (Default: True)
+    @return result in dict fmt
     """
     recording_time = t[-1] - t[0]
 

@@ -18,7 +18,6 @@ import numpy as np
 from aux import cfg, dataio, compare
 from freezing import freezeindex as frz
 
-FILE_DIR = os.path.abspath(os.path.dirname(__file__))
 logging.basicConfig(level=logging.INFO, force=True, format=cfg.LOGGING_FMT)
 logger = logging.getLogger(__name__)
 
