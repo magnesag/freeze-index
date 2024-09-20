@@ -494,6 +494,9 @@ def compute_and_visualize_ious(
         ious["rho"].append(rho)
         ious["r2"].append(r2)
 
+    markers = {"lumbar": "s", "thigh": "^", "shank": "o"}
+    labels = {"mad": "IOU(MAD)", "rho": r"IOU($\rho$)", "r2": r"IOU($R^2$)"}
+
     if "multitaper" in [name.value for name in comparison.names]:
         colors = cfg.generate_n_colors_from_cmap(len(comparison.names), cfg.COMP_CM)
         colors[-1] = cfg.MT_COLOR
@@ -501,14 +504,11 @@ def compute_and_visualize_ious(
         colors = np.vstack(
             [
                 cfg.generate_n_colors_from_cmap(
-                    len(comparison.names) // len(ious), cfg.COMP_CM
+                    len(comparison.names) // len(markers), cfg.COMP_CM
                 )
-                for _ in range(len(ious))
+                for _ in range(len(markers))
             ]
         )
-
-    markers = {"lumbar": "s", "thigh": "^", "shank": "o"}
-    labels = {"mad": "IOU(MAD)", "rho": r"IOU($\rho$)", "r2": r"IOU($R^2$)"}
 
     n = len(comparison.names)
     figx = n if n < 7 else 10
