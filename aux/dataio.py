@@ -4,7 +4,7 @@
 
     This module contains functions for reading and writing data.
 
-    @author A. Schaer
+    @author A. Schaer, R. Sobkuliak
     @copyright Magnes AG, (C) 2024.
 """
 
@@ -24,6 +24,16 @@ logger = logging.getLogger(__name__)
 
 ## Proxy options
 class ProxyChoice(str, enum.Enum):
+    LUMBAR_X: str = "lumbar-x"
+    LUMBAR_Y: str = "lumbar-y"
+    LUMBAR_Z: str = "lumbar-z"
+    LUMBAR_M: str = "lumbar-magnitude"
+    LUMBAR_SUM: str = "lumbar-sum"
+    THIGH_X: str = "thigh-x"
+    THIGH_Y: str = "thigh-y"
+    THIGH_Z: str = "thigh-z"
+    THIGH_M: str = "thigh-magnitude"
+    THIGH_SUM: str = "thigh-sum"
     SHANK_X: str = "shank-x"
     SHANK_Y: str = "shank-y"
     SHANK_Z: str = "shank-z"
@@ -65,6 +75,26 @@ class DaphnetRaw:
         return 1 / np.mean(np.diff(self.t))
 
     def get_proxy(self, choice: ProxyChoice) -> np.ndarray:
+        if choice == ProxyChoice.LUMBAR_X:
+            return self.lumbar_xl.x
+        elif choice == ProxyChoice.LUMBAR_Y:
+            return self.lumbar_xl.y
+        elif choice == ProxyChoice.LUMBAR_Z:
+            return self.lumbar_xl.z
+        elif choice == ProxyChoice.LUMBAR_M:
+            return self.lumbar_xl.norm
+        elif choice == ProxyChoice.LUMBAR_SUM:
+            return self.lumbar_xl.sum
+        if choice == ProxyChoice.THIGH_X:
+            return self.thigh_xl.x
+        elif choice == ProxyChoice.THIGH_Y:
+            return self.thigh_xl.y
+        elif choice == ProxyChoice.THIGH_Z:
+            return self.thigh_xl.z
+        elif choice == ProxyChoice.THIGH_M:
+            return self.thigh_xl.norm
+        elif choice == ProxyChoice.THIGH_SUM:
+            return self.thigh_xl.sum
         if choice == ProxyChoice.SHANK_X:
             return self.shank_xl.x
         elif choice == ProxyChoice.SHANK_Y:
@@ -118,9 +148,9 @@ def load_daphnet_txt(fn: str) -> DaphnetRaw:
             continue
 
         t.append(cfg.MS2S * float(nibbles[0]))
-        lxl.append([cfg.MG2MPS2 * float(n) for n in nibbles[1:4]])
+        sxl.append([cfg.MG2MPS2 * float(n) for n in nibbles[1:4]])
         txl.append([cfg.MG2MPS2 * float(n) for n in nibbles[4:7]])
-        sxl.append([cfg.MG2MPS2 * float(n) for n in nibbles[7:10]])
+        lxl.append([cfg.MG2MPS2 * float(n) for n in nibbles[7:10]])
         flag.append(int(nibbles[10]))
 
     flag = np.array(flag, dtype=int)

@@ -43,8 +43,10 @@ PLOT_RC = {
     "font": {"family": "serif", "size": 16},
     "text": {"usetex": USE_TEX},
 }
-SWEEP_CM = pltlib.cm.inferno
-COMP_CM = pltlib.cm.viridis
+SWEEP_CM = pltlib.cm.YlGnBu_r
+COMP_CM = pltlib.cm.YlGnBu
+SIMILARITY_CM = pltlib.cm.YlGnBu
+MT_COLOR = [0.0, 0.0, 0.0, 1.0]
 generate_n_colors_from_cmap = lambda n, cmap: cmap(np.linspace(0, 1, n))
 STANDARDIZED_AX_LIM = (-5, 5)
 DIRECT_COMPARISON_MAX_PTS = 250

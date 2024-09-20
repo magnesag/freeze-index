@@ -6,7 +6,7 @@
     such as the freezing index by Moore, the one by Bachlin, the one by
     Cockx, and the multitaper FI introduced by Magnes AG.
 
-    @author A. Schaer, C. Mangiante
+    @author A. Schaer, C. Mangiante, R. Sobkuliak, H. Maurenbrecher
     @copyright Magnes AG, (C) 2024.
 """
 
@@ -38,7 +38,12 @@ class VARIANTS(str, enum.Enum):
     MULTITAPER: str = "multitaper"
 
 
-MIN_FFT_WINDOW_SIZE = 256
+# @note the minimum FFT window size is set such that for the Daphnet data (sampled at 64 Hz)
+# and the Zach method (window size of 2 seconds), no (artificial) padding is added.
+# This is meant to mimimize deviations from the original definitions.
+# It should be noted though, that increasing this value will start to show the importance of
+# adequate preprocessing steps in the spectrogram evaluation.
+MIN_FFT_WINDOW_SIZE = 128
 HOP_DIV = 32
 
 logger = logging.getLogger(__name__)
@@ -171,7 +176,17 @@ def compute_moore_fi(
     """!Compute the scaled FI according to Moore et al.
 
     This function computes the FI for a window of 6 seconds and scales the
-    value by the Moore scaling.
+    value by the Moore scaling as described in the paper
+
+    > Moore, S. T., MacDougall, H. G., & Ondo, W. G. (2008).
+        Ambulatory monitoring of freezing of gait in Parkinson's disease.
+        Journal of Neuroscience Methods, 167(2), 340-348.
+        doi:10.1016/j.jneumeth.2007.08.023
+
+    The follow-up paper by Moore et al. (Autonomous identification of freezing
+    of gait in Parkinson's disease from lower-body segmental accelerometry,
+    2013) changed the locomotor band to (0, 3) Hz and the window size to
+    5 s. This variant is not implemented herein.
 
     @param proxy Proxy signal for FI computation. Originally: vertical acceleration.
     @param fs Signal sampling frequency

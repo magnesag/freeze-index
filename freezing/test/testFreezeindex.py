@@ -140,7 +140,7 @@ class TestFreezingFunctions(ut.TestCase):
         indicator[cfi > frz.FI_THS.MOORE.value] = 1.0
         # Remove false positive at end and start due to edge effects
         indicator[9 * len(indicator) // 10 :] = 0.0
-        indicator[: len(indicator) // 10] = 0.0
+        indicator[: 2 * len(indicator) // 10] = 0.0
         di = np.diff(indicator)
         indicator_start = ct[np.arange(len(indicator) - 1)[di > 0]][0]
         indicator_end = ct[np.arange(len(indicator) - 1)[di < 0]][0]

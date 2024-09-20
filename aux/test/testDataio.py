@@ -11,7 +11,7 @@ import unittest as ut
 
 import matplotlib.pyplot as pltlib
 
-from .. import dataio
+from aux import dataio
 
 FILE_DIR = os.path.abspath(os.path.dirname(__file__))
 DATA_DIR = os.path.join(FILE_DIR, "data")
