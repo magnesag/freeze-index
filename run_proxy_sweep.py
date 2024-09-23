@@ -50,7 +50,7 @@ def eval_fi(
     @param t Time array of raw-data
     @param proxy Proxy signal from which to evaluate the FI
     @param fs sampling frequency
-    @param standardize Whether to standardize the FI values
+    @param standardize Whether to standardize the FI values (Default: False)
     """
     recording_time = t[-1] - t[0]
     fi_t, fi = frz.compute_multitaper_fi(proxy, fs)
@@ -68,7 +68,7 @@ def compare_fi_for_proxys(
 
     @param fns Data files (filenames with path)
     @param standardize Whether to standardize the FI values
-    @param force Whether to force computation or try to load from cache
+    @param force Whether to force computation or try to load from cache (Default: False)
     """
 
     for fn in fns:
