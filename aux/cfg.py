@@ -25,7 +25,7 @@ DAPHNET_FILE_EXTENSION = ".txt"
 LOGGING_FMT = "%(asctime)s|%(levelname)s|%(module)s.%(funcName)s() -> %(msg)s"
 
 ## Implementation variants' standard arguments
-MULTITAPER_STANDARD_KWARGS = {"dt": 5.0, "L": 4, "NW": 2.5, "LFTF": 8, "nmaf": 5}
+MULTITAPER_STANDARD_KWARGS = {"dt": 5.0, "L": 4, "NW": 2.5, "LFTF": 3, "nmaf": 5}
 
 ## Conversion constants
 G = 9.81
