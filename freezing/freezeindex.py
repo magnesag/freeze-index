@@ -6,7 +6,7 @@
     such as the freezing index by Moore, the one by Bachlin, the one by
     Cockx, and the multitaper FI introduced by Magnes AG.
 
-    @author A. Schaer, C. Mangiante
+    @author A. Schaer, C. Mangiante, R. Sobkuliak, H. Maurenbrecher
     @copyright Magnes AG, (C) 2024.
 """
 
@@ -38,7 +38,12 @@ class VARIANTS(str, enum.Enum):
     MULTITAPER: str = "multitaper"
 
 
-MIN_FFT_WINDOW_SIZE = 256
+# @note the minimum FFT window size is set such that for the Daphnet data (sampled at 64 Hz)
+# and the Zach method (window size of 2 seconds), no (artificial) padding is added.
+# This is meant to mimimize deviations from the original definitions.
+# It should be noted though, that increasing this value will start to show the importance of
+# adequate preprocessing steps in the spectrogram evaluation.
+MIN_FFT_WINDOW_SIZE = 128
 HOP_DIV = 32
 
 logger = logging.getLogger(__name__)
@@ -53,10 +58,10 @@ def compute_fi_variant(
     """!Compute the FI on x using the selected variant
 
     @param x Proxy signal
-    @param fs (default: 100.0) Sampling frequency in Hz
-    @param variant (default: "multitaper") Variant to use for FI computation
-    @param variant_kwargs (default: {}) Keyword arguments for the variant
-    @return
+    @param fs Sampling frequency in Hz (Default: 100.0)
+    @param variant Variant to use for FI computation (Default: "multitaper")
+    @param variant_kwargs Keyword arguments for the variant (Default: {})
+    @return t, FI
     """
     if variant == VARIANTS.MOORE:
         return compute_moore_fi(x, fs)
@@ -100,12 +105,12 @@ def compute_fi_free_window(
 
     The follow-up paper by Moore et al. (Autonomous identification of freezing
     of gait in Parkinson's disease from lower-body segmental accelerometry,
-    2008) changed the locomotor band to (0, 3) Hz and the window size to
+    2013) changed the locomotor band to (0, 3) Hz and the window size to
     5 s.
 
     @param x Gait raw signal
     @param w Window width in number of samples
-    @param fs Sampling frequency, optional. Default 100 Hz
+    @param fs Sampling frequency (Default 100 Hz)
     @return t, FI
     """
     win = signal.windows.boxcar(w, sym=False)
@@ -171,7 +176,17 @@ def compute_moore_fi(
     """!Compute the scaled FI according to Moore et al.
 
     This function computes the FI for a window of 6 seconds and scales the
-    value by the Moore scaling.
+    value by the Moore scaling as described in the paper
+
+    > Moore, S. T., MacDougall, H. G., & Ondo, W. G. (2008).
+        Ambulatory monitoring of freezing of gait in Parkinson's disease.
+        Journal of Neuroscience Methods, 167(2), 340-348.
+        doi:10.1016/j.jneumeth.2007.08.023
+
+    The follow-up paper by Moore et al. (Autonomous identification of freezing
+    of gait in Parkinson's disease from lower-body segmental accelerometry,
+    2013) changed the locomotor band to (0, 3) Hz and the window size to
+    5 s. This variant is not implemented herein.
 
     @param proxy Proxy signal for FI computation. Originally: vertical acceleration.
     @param fs Signal sampling frequency
@@ -259,7 +274,7 @@ def compute_bachlin_fi(
     Moore scaling is applied in this verison of the implementation.
 
     @param proxy Proxy signal, originally vertical acceleration
-    @param fs Sampling frequency
+    @param fs Sampling frequency (Default: 100)
     @return t, Bachlin FI
     """
     BACHLIN_WINDOW_DURATION_S = 4.0
@@ -311,7 +326,7 @@ def compute_cockx_fi(
     * The freezing band, as per the paper, is (3.5, 8) Hz, although the MATLAB code uses (3, 8) Hz.
 
     @param proxy Proxy signal from where to derive FI, originally shin vertical acceleration
-    @param fs Sampling frequency
+    @param fs Sampling frequency (Default: 100)
     @return t, FI according to Cockx
     """
     COCKX_WINDOW_DURATION_S = 3.0
@@ -361,7 +376,8 @@ def compute_multitaper_fi(
     dt: float = 5,
     L: int = 4,
     NW: float = 2.5,
-    nmaf: int = 11,
+    LFTF: float = 3,
+    nmaf: int = 5,
 ) -> tuple[np.ndarray, np.ndarray]:
     """!Compute multitaper FI with L DPSS-tapers
 
@@ -370,15 +386,21 @@ def compute_multitaper_fi(
         on Biomedical Engineering. 2014 Mar 14;61(5):1555-64.
 
     @param proxy Proxy signal
-    @param fs Sampling frequency
-    @param dt Time window
-    @param L Number of tapers
-    @param NW DPSS half-bandwidth parameter. 2.5 defualt
+    @param fs Sampling frequency (Default: 100)
+    @param dt Time window (Default: 5)
+    @param L Number of tapers (Default: 4)
+    @param NW DPSS half-bandwidth parameter (Default 2.5)
+    @param LFTF Locomotion-Freeze-Threshold Frequency (Default: 3)
+    @param nmaf Moving Average Filter size, if `None` no filtering is applied to the FI (Default: 5)
     @return t, FI
     """
+    F_LOCO = (0.5, LFTF)
+    F_FREEZE = (LFTF, 8)
+
     n = round(dt * fs) + 1
     nfft = 2 ** int(np.log2(n) + 3) - 1
     windows = signal.windows.dpss(n, NW, L, sym=False)
+
     spectrum = None
     for win in windows:
         stf = signal.ShortTimeFFT(
@@ -390,31 +412,20 @@ def compute_multitaper_fi(
             fft_mode="onesided",
         )
         ghost = stf.spectrogram(proxy, detr="linear")
+
         if spectrum is None:
             spectrum = ghost.copy()
         else:
             spectrum += ghost.copy()
 
-    locomotor_slc = slice(
-        *[
-            round(nf / (0.5 * fs) * ghost.shape[0])
-            for nf in FREQUENCY_RANGE.LOCOMOTOR.value
-        ]
-    )
-    freeze_slc = slice(
-        *[
-            round(nf / (0.5 * fs) * ghost.shape[0])
-            for nf in FREQUENCY_RANGE.FREEZING.value
-        ]
-    )
+    locomotor_slc = slice(*[round(nf / (0.5 * fs) * ghost.shape[0]) for nf in F_LOCO])
+    freeze_slc = slice(*[round(nf / (0.5 * fs) * ghost.shape[0]) for nf in F_FREEZE])
     locomotor_ghost = ghost[locomotor_slc, :].copy()
     freeze_ghost = ghost[freeze_slc, :].copy()
-    locomotor_f = np.linspace(
-        *FREQUENCY_RANGE.LOCOMOTOR.value, locomotor_ghost.shape[0]
-    )
-    patho_f = np.linspace(*FREQUENCY_RANGE.FREEZING.value, freeze_ghost.shape[0])
+    locomotor_f = np.linspace(*F_LOCO, locomotor_ghost.shape[0])
+    freeze_f = np.linspace(*F_FREEZE, freeze_ghost.shape[0])
     locomotor_power = np.trapz(locomotor_ghost, locomotor_f, axis=0)
-    freeze_power = np.trapz(freeze_ghost, patho_f, axis=0)
+    freeze_power = np.trapz(freeze_ghost, freeze_f, axis=0)
     fi = freeze_power / (locomotor_power + np.spacing(1))
 
     t = stf.t(len(proxy))
@@ -424,7 +435,7 @@ def compute_multitaper_fi(
 
     if isinstance(nmaf, int) and nmaf >= 3:
         mafk = np.ones(nmaf) / nmaf
-        fi = np.convolve(fi, mafk, mode="full")[nmaf // 2 : -nmaf // 2 + 1]
+        fi = np.convolve(fi, mafk, mode="same")
 
     fi = apply_moore_fi_scaling(fi[idx])
     return np.linspace(0, 1, len(fi)), fi
@@ -462,8 +473,8 @@ def compute_babadi_brown_multitaper_fi(
         on Biomedical Engineering. 2014 Mar 14;61(5):1555-64.
 
     @param proxy Proxy signal
-    @param fs Sampling frequency
-    @param dt Time window
+    @param fs Sampling frequency (Default: 100)
+    @param dt Time window (Default: 1)
     @return t, FI
     """
     n = int(dt * fs)

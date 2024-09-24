@@ -25,7 +25,7 @@ DAPHNET_FILE_EXTENSION = ".txt"
 LOGGING_FMT = "%(asctime)s|%(levelname)s|%(module)s.%(funcName)s() -> %(msg)s"
 
 ## Implementation variants' standard arguments
-MULTITAPER_STANDARD_KWARGS = {"dt": 5.0, "L": 4, "NW": 2.5, "nmaf": 5}
+MULTITAPER_STANDARD_KWARGS = {"dt": 5.0, "L": 4, "NW": 2.5, "LFTF": 3, "nmaf": 5}
 
 ## Conversion constants
 G = 9.81
@@ -43,8 +43,10 @@ PLOT_RC = {
     "font": {"family": "serif", "size": 16},
     "text": {"usetex": USE_TEX},
 }
-SWEEP_CM = pltlib.cm.inferno
-COMP_CM = pltlib.cm.viridis
+SWEEP_CM = pltlib.cm.YlGnBu_r
+COMP_CM = pltlib.cm.YlGnBu
+SIMILARITY_CM = pltlib.cm.YlGnBu
+MT_COLOR = [0.0, 0.0, 0.0, 1.0]
 generate_n_colors_from_cmap = lambda n, cmap: cmap(np.linspace(0, 1, n))
 STANDARDIZED_AX_LIM = (-5, 5)
 DIRECT_COMPARISON_MAX_PTS = 250

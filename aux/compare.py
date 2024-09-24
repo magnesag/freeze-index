@@ -9,6 +9,7 @@
 """
 
 import dataclasses
+import itertools
 import logging
 import os
 
@@ -37,24 +38,60 @@ class ComparisonMetrics:
         """!Post-initialization"""
         self._n = len(self.names)
 
+    def __iter__(self):
+        for x in (self.mad, self.rho, self.r2):
+            yield x
+
+    def compute_metrics_iou(self, name: str) -> tuple[float, float, float]:
+        """!Compute the IOU of the spanned ranges when leaving the selected case out
+
+        @param name Name of the case to be compared to all others
+        @return IOU(MAD), IOU(rho), IOU(R2)
+        """
+        if name not in self.names:
+            raise ValueError(f"Provided case {name} is not in {self.names}")
+
+        res = []
+        case_idx = self.names.index(name)
+        for values in self:
+            case_vals = []
+            other_vals = []
+            for ii in range(values.shape[0]):
+                for jj in range(ii + 1, values.shape[1]):
+                    if ii == case_idx or jj == case_idx:
+                        case_vals.append(values[ii, jj])
+                    else:
+                        other_vals.append(values[ii, jj])
+
+            res.append(self.compute_iou(case_vals, other_vals))
+
+        return tuple(res)
+
     def visualize(self, dest: str = None) -> None:
-        """!Visualize the comparison metrics"""
+        """!Visualize the comparison metrics
+
+        @param dest optional destination to dump plot (Default: None)
+        """
         minmad = np.nanmin(self.mad)
         maxmad = np.nanmax(self.mad)
-        fig, axs = pltlib.subplots(figsize=(8, 8))
+        figside = 5 / 5 * self._n
+        fig, axs = pltlib.subplots(figsize=(figside, figside))
         img = pltlib.imshow(
             self.mad,
             aspect="equal",
             origin="upper",
             vmin=minmad,
             vmax=maxmad,
-            cmap="Wistia",
+            cmap=cfg.SIMILARITY_CM,
         )
         fig.colorbar(img, ax=axs, label="MAD [-]", shrink=0.73)
-        TEXT_FNTSZ = min(cfg.PLOT_RC["font"]["size"], 64 / self._n)
+        if "multitaper" in self.names:
+            TEXT_FNTSZ = min(cfg.PLOT_RC["font"]["size"], 48 / self._n)
+        else:
+            TEXT_FNTSZ = cfg.PLOT_RC["font"]["size"] * 0.6
         font_dicts = (
-            {"weight": "bold", "color": "white", "size": TEXT_FNTSZ},
-            {"size": TEXT_FNTSZ},
+            {"weight": "heavy", "color": "black", "size": TEXT_FNTSZ, "rotation": 45},
+            {"size": TEXT_FNTSZ, "color": "white", "weight": "light", "rotation": 45},
         )
         for kk in range(self._n):
             for jj in range(self._n):
@@ -64,10 +101,11 @@ class ComparisonMetrics:
                 if jj > kk:
                     txt = "\n".join(
                         [
-                            rf"$\rho$ = {self.rho[kk,jj]:.2f}",
-                            rf"$R^2$ = {self.r2[kk,jj]:.2f}",
+                            rf"$\rho$={self.rho[kk,jj]:.2f}",
+                            rf"$R^2$={self.r2[kk,jj]:.2f}",
                         ]
                     )
+
                 else:
                     txt = rf"{self.mad[kk,jj]:.2f}"
 
@@ -85,6 +123,26 @@ class ComparisonMetrics:
             fig.savefig(f"similarity-matrix")
         else:
             fig.savefig(os.path.join(dest, f"similarity-matrix"))
+
+    @staticmethod
+    def compute_iou(seta: list[float], setb: list[float]) -> float:
+        """!Compute the IOU of the ranges spanned by set A and set B
+
+        @param seta Elements of A
+        @param setb Elements of B
+        @return IOU or ranges spanned by A and B
+        """
+        maxa = max(seta)
+        maxb = max(setb)
+        mina = min(seta)
+        minb = min(setb)
+        maxmax = max(maxa, maxb)
+        minmin = min(mina, minb)
+        minmax = min(maxa, maxb)
+        maxmin = max(mina, minb)
+        union = maxmax - minmin
+        intersection = max(minmax - maxmin, 0)
+        return intersection / union if union > 0 else 0.0
 
 
 def standardize(x: np.ndarray) -> np.ndarray:
@@ -150,8 +208,9 @@ def draw_all_comparisons(
     """
     logger.info("Drawing direct comparison")
     n_variants = xs.shape[0]
+    figside = 12 / 5 * n_variants
     fig, axs = pltlib.subplots(
-        n_variants, n_variants, figsize=(12, 12), sharex=True, sharey=True
+        n_variants, n_variants, figsize=(figside, figside), sharex=True, sharey=True
     )
     axs[0, 0].set(xlim=cfg.STANDARDIZED_AX_LIM, ylim=cfg.STANDARDIZED_AX_LIM)
     DOWNSAMPLE = max(int(len(xs[0]) / cfg.DIRECT_COMPARISON_MAX_PTS), 1)
@@ -252,18 +311,25 @@ def overlay(
     YLABEL = "Standardized FI [-]" if standardized else "FI [-]"
     fn = f"fi-overlay-standardized" if standardized else f"fi-overlay"
     n = len(estimates)
+    colors = cfg.generate_n_colors_from_cmap(n, cfg.COMP_CM)
     if "multitaper" in estimates.keys():
-        n -= 1
+        colors[-1] = cfg.MT_COLOR
 
-    colors = iter(cfg.generate_n_colors_from_cmap(n, cfg.COMP_CM))
+    colors = iter(colors)
     fig, axs = pltlib.subplots()
     mark_fog_regions_on_axs(t, flag, axs)
     for case, vals in estimates.items():
-        kwargs = {"label": case.title(), "ls": "-", "lw": 3}
+        kwargs = {
+            "label": case.title(),
+            "ls": "-",
+            "lw": 3,
+            "zorder": 5,
+            "c": next(colors),
+        }
         if case == "multitaper":
-            kwargs.update({"lw": 2, "c": "black", "zorder": 10, "ls": "-"})
-        else:
-            kwargs.update({"c": next(colors)})
+            kwargs.update({"lw": 2, "zorder": 10, "ls": "--"})
+        elif case == "zach":
+            kwargs.update({"zorder": 1})
 
         axs.plot(vals["t"], vals["fi"], **kwargs)
 
@@ -303,17 +369,16 @@ def draw_fi_spectra(estimates: dict[str, np.ndarray], dest: str):
         names.append(name.title())
 
     n = len(estimates)
+    colors = cfg.generate_n_colors_from_cmap(n, cfg.COMP_CM)
     if "Multitaper" in names:
-        n -= 1
+        colors[-1] = cfg.MT_COLOR
 
-    colors = iter(cfg.generate_n_colors_from_cmap(n, cfg.COMP_CM))
+    colors = iter(colors)
     fig, axs = pltlib.subplots()
     for f, x, name in zip(freqs, spectra, names):
-        kwargs = {"label": name.title(), "ls": "-", "lw": 3}
+        kwargs = {"label": name.title(), "ls": "-", "lw": 3, "c": next(colors)}
         if name == "Multitaper":
-            kwargs.update({"lw": 3, "c": "black", "zorder": 10, "ls": "--"})
-        else:
-            kwargs.update({"c": next(colors)})
+            kwargs.update({"lw": 3, "zorder": 10, "ls": "--"})
 
         axs.plot(f, x, **kwargs)
 
@@ -348,7 +413,7 @@ def compare_fis(
     @param estimates FI estimates
     @param dest Destination where to store images (plots)
     @param flag FOG signal array
-    @param standardized Whether FIs are standardized
+    @param standardized Whether FIs are standardized (Default: True)
     """
     logger.info("Comparing FIs")
     n = max(len(case["fi"]) for case in estimates.values())
@@ -419,3 +484,63 @@ def draw_sweep_comparison(
 
     fig.savefig(fn)
     pltlib.close(fig)
+
+
+def compute_and_visualize_ious(
+    comparison: ComparisonMetrics, dest: str
+) -> dict[str, list[float]]:
+    """!Compute and visualize IOUs"""
+    ious = {"mad": [], "rho": [], "r2": []}
+    for name in comparison.names:
+        mad, rho, r2 = comparison.compute_metrics_iou(name)
+        ious["mad"].append(mad)
+        ious["rho"].append(rho)
+        ious["r2"].append(r2)
+
+    markers = {"lumbar": "s", "thigh": "^", "shank": "o"}
+    labels = {"mad": "IOU(MAD)", "rho": r"IOU($\rho$)", "r2": r"IOU($R^2$)"}
+
+    if "multitaper" in [name.value for name in comparison.names]:
+        colors = cfg.generate_n_colors_from_cmap(len(comparison.names), cfg.COMP_CM)
+        colors[-1] = cfg.MT_COLOR
+    else:
+        colors = np.vstack(
+            [
+                cfg.generate_n_colors_from_cmap(
+                    len(comparison.names) // len(markers), cfg.COMP_CM
+                )
+                for _ in range(len(markers))
+            ]
+        )
+
+    n = len(comparison.names)
+    figx = n if n < 7 else 10
+    figy = n - 1 if n < 7 else 9
+    for combo in itertools.combinations(ious.keys(), 2):
+        a, b = combo
+        fig, axs = pltlib.subplots(figsize=(figx, figy))
+        for ii, name in enumerate(comparison.names):
+            mk = name.split("-")[0]
+            marker = markers[mk] if mk in markers.keys() else "o"
+            if name == "multitaper":
+                marker = "v"
+
+            axs.plot(
+                ious[a][ii],
+                ious[b][ii],
+                marker=marker,
+                c=colors[ii],
+                ms=20,
+                mec="black",
+                label=name.title(),
+                ls="",
+            )
+
+        axs.grid(True)
+        axs.set(xlim=(0, 1), ylim=(0, 1), xlabel=labels[a], ylabel=labels[b])
+        axs.legend(loc="upper left", bbox_to_anchor=(1, 1))
+        fig.tight_layout()
+        pltlib.savefig(os.path.join(dest, f"iou-{a}-{b}"))
+        pltlib.close(fig)
+
+    return ious
