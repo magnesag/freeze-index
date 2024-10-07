@@ -30,7 +30,7 @@ import time
 logging.basicConfig(level=logging.INFO, force=True, format=cfg.LOGGING_FMT)
 logger = logging.getLogger(__name__)
 
-WITH_MULTI_PROCESSING = True
+WITH_MULTI_PROCESSING = False
 
 PARAM_RANGES = {
     "dt": np.linspace(2, 10, 17),
@@ -42,7 +42,7 @@ PARAM_NAMES_AND_LABELS = {
     "dt": ("window-width", "$T$ [s]"),
     "L": ("number-of-tapers", "$L$ [--]"),
     "NW": ("bandwidth", "$B$ [--]"),
-    "LFTF": ("locomotion-freeze-threshold-frequency", "$f$ [Hz]"),
+    "LFTF": ("locomotion-freeze-threshold-frequency", "$f_t$ [Hz]"),
 }
 PROXY = dataio.ProxyChoice.SHANK_Y
 RES_SUBDIR = os.path.join(cfg.RES_DIR, "param-sweep")
@@ -174,20 +174,23 @@ def compare_fi_for_multitaper_parametric_sweep(
         logger.info(
             f"Running with Multiprocessing. Grabbing {cpu_count} CPUs for the job."
         )
+        with mp.Pool(cpu_count) as pool:
+            sweep_results = pool.starmap(
+                single_file_mutlitaper_sweep,
+                zip(
+                    fps, itertools.repeat(standardize), itertools.repeat(sweeping_param)
+                ),
+                chunksize=cpu_count,
+            )
+
+            for sr in sweep_results:
+                if sr is None:
+                    continue
+
+                res[sr["_id"]] = sr["res"]
     else:
-        cpu_count = 1
-
-    with mp.Pool(cpu_count) as pool:
-        sweep_results = pool.starmap(
-            single_file_mutlitaper_sweep,
-            zip(fps, itertools.repeat(standardize), itertools.repeat(sweeping_param)),
-            chunksize=cpu_count,
-        )
-
-        for sr in sweep_results:
-            if sr is None:
-                continue
-
+        for fp in fps:
+            sr = single_file_mutlitaper_sweep(fp, standardize, sweeping_param)
             res[sr["_id"]] = sr["res"]
 
     return res

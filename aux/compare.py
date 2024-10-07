@@ -477,6 +477,8 @@ def draw_sweep_comparison(
     if standardized:
         axs.set_ylim(cfg.STANDARDIZED_AX_LIM)
         fn += "-standardized"
+    else:
+        axs.set_ylim((2, 10))
 
     fig.tight_layout()
     if not dest is None:
