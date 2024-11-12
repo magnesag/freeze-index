@@ -1,4 +1,4 @@
-"""
+"""!
     Simulated Signal Inspection
     ===========================
 
@@ -10,7 +10,7 @@
     * The RMSE w.r.t. the theoretical value.
     In order to minimize the effects of random sampling, the metrics are computed for M runs.
 
-    @author A. Schaer
+    @author A. Schaer, H. Maurenbrecher
     @copyright Magnes AG, (C) 2024
 """
 
