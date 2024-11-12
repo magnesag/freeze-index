@@ -158,6 +158,5 @@ cython_debug/
 # Testing artifacts
 **/test/res/*
 
-
 # Results artifacts - one can simply run the scripts to regenerate them
 res/*
