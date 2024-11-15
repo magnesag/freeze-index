@@ -35,6 +35,8 @@ The script will take care of parsing all data files, running the FI computations
 resulting plots in the `res/` subdirectory. The `res/` subdirectory is not tracked and automatically generated
 if inexistent by the script. Results are sorted by input file and proxy choice.
 
+To run the comparison of definitnions against theory, run the `simulation.py` script.
+
 ## Multitaper Parameter Sweep
 To run the multitaper parametric sweep and thus to inspect the effects of each parameter of the multitaper method
 on the FI run
