@@ -4,6 +4,9 @@ This repository contains the code inherent to Magnes' review and exploration of 
 in [1]. The implementations reported here in are the ones introduced by Bachlin [2], Cockx [3], Zach [4], in addition
 to Moore's [1] and the newly proposed multitaper method.
 
+This work has been accepted for publication. Please cite this repository as:
+> Schaer A, Maurenbrecher H, Mangiante C, Sobkuliak R, Müsch K, Sanchez Lopez P, Moraud EM, Ergeneman O, Chatzipirpiridis G. Towards a Unified Gait Freeze Index: A Standardized Benchmark for Clinical and Regulatory Evaluations. Frontiers in Neurology;16:1528963.
+
 ## Setup
 
 ### Requirements
