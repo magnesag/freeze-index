@@ -1,11 +1,11 @@
 """!
-    Compare Module
-    ==============
+Compare Module
+==============
 
-    This module implements functions for the comparison of FIs computed using different methds.
+This module implements functions for the comparison of FIs computed using different methds.
 
-    @author A. Schaer
-    @copyright Magnes AG, (C) 2024.
+@author A. Schaer
+@copyright Magnes AG, (C) 2024.
 """
 
 import dataclasses
@@ -19,7 +19,7 @@ import numpy as np
 from sklearn import metrics
 from scipy import signal
 
-from aux import cfg
+from xcomparisons.aux import cfg
 
 
 logger = logging.getLogger(__name__)

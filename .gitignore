@@ -159,7 +159,7 @@ cython_debug/
 **/test/res/*
 
 # Results artifacts - one can simply run the scripts to regenerate them
-res/*
+**/res/*
 
 # VSCode settings
 .vscode/

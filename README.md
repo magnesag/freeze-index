@@ -7,19 +7,24 @@ to Moore's [1] and the newly proposed multitaper method.
 ## Setup
 
 ### Requirements
-1. Python >=3.9
+1. Python >=3.10
 2. (optional) Latex -- for paper-ready plots set `USE_TEX=True` in `aux/cfg.py`
+
+### Installation
+```bash
+pip install freezing
+```
 
 ### Daphnet dataset
 The Daphnet Freezing of Gait dataset is used for comparisons. It has a permissive CC BY 4.0 license and the data can be found under `data/` folder.
 
 Source (accessed on 19.08.2024): https://archive.ics.uci.edu/dataset/245/daphnet+freezing+of+gait
 
-### Python environment
-To manage Python library dependencies, Python virtual environment is used. Run the following from the root project directory:
+### Python Environment for Source Usage
+To manage Python library dependencies, Python virtual environment is used. Run the following from the root project directory (assuming `python --version >=3.10`):
 ```sh
 # Create Python virtual environment
-python3 -m venv venv
+python -m venv venv
 # Activate it
 . ./venv/bin/activate
 # Install dependencies
@@ -29,7 +34,7 @@ pip install -r requirements.txt
 ## Comparing Definitions
 To compare FI definitions on the Daphnet dataset, run the script `run_variants_comparison.py` from root project directory as
 ```bash
-python run_variants_comparison.py
+python -m xcomparisons.run_variants_comparison.py
 ```
 The script will take care of parsing all data files, running the FI computations and comparisons, and save the
 resulting plots in the `res/` subdirectory. The `res/` subdirectory is not tracked and automatically generated
@@ -39,13 +44,13 @@ if inexistent by the script. Results are sorted by input file and proxy choice.
 To run the multitaper parametric sweep and thus to inspect the effects of each parameter of the multitaper method
 on the FI run
 ```bash
-python run_multitaper_sweep.py
+python -m xcomparisons.run_multitaper_sweep
 ```
 
 ## Proxy Evaluation
 To evaluate the effect of proxy choice on the FI for the multitaper definition, run
 ```bash
-python run_proxy_sweep.py
+python -m xcomparisons.run_proxy_sweep.py
 ```
 
 ## References

@@ -1,12 +1,12 @@
 #!/usr/bin/env python3.9 -O
 """!
-    Evaluation of the FI for Various Proxy Signals on Daphnet Data
-    ==============================================================
+Evaluation of the FI for Various Proxy Signals on Daphnet Data
+==============================================================
 
-    This script evaluates the multitaper FI for various proxy choices on the Daphnet data.
+This script evaluates the multitaper FI for various proxy choices on the Daphnet data.
 
-    @author A. Schaer
-    @copyright Magnes AG, (C) 2024.
+@author A. Schaer
+@copyright Magnes AG, (C) 2024.
 """
 import json
 import logging
@@ -16,7 +16,7 @@ import warnings
 import matplotlib.pyplot as pltlib
 import numpy as np
 
-from aux import cfg, dataio, compare
+from xcomparisons.aux import cfg, dataio, compare
 from freezing import freezeindex as frz
 
 logging.basicConfig(level=logging.INFO, force=True, format=cfg.LOGGING_FMT)

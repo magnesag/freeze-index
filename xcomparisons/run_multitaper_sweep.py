@@ -1,36 +1,35 @@
 #!/usr/bin/env python3.9 -O
 """!
-    Evaluation of the FI for Various Multitaper Parameter Options
-    =============================================================
+Evaluation of the FI for Various Multitaper Parameter Options
+=============================================================
 
-    This script evaluates the multitaper FI for various parameter options on the Daphnet data.
-    It is run using multiprocess to speed things up by default. To change this behavior,
-    set the `WITH_MULTI_PROCESSING = False`.
+This script evaluates the multitaper FI for various parameter options on the Daphnet data.
+It is run using multiprocess to speed things up by default. To change this behavior,
+set the `WITH_MULTI_PROCESSING = False`.
 
-    @author A. Schaer, H. Maurenbrecher
-    @copyright Magnes AG, (C) 2024.
+@author A. Schaer, H. Maurenbrecher
+@copyright Magnes AG, (C) 2024.
 """
 import enum
 import itertools
 import json
 import logging
 import os
+import time
 import warnings
 
 import matplotlib.pyplot as pltlib
 import multiprocessing as mp
 import numpy as np
 
-from aux import cfg, dataio, compare
+from xcomparisons.aux import cfg, dataio, compare
 from freezing import freezeindex as frz
 
-
-import time
 
 logging.basicConfig(level=logging.INFO, force=True, format=cfg.LOGGING_FMT)
 logger = logging.getLogger(__name__)
 
-WITH_MULTI_PROCESSING = False
+WITH_MULTI_PROCESSING = True
 
 PARAM_RANGES = {
     "dt": np.linspace(2, 10, 17),
