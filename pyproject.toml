@@ -22,7 +22,6 @@ authors = [
   { name = "Roman Sobkuliak" },
 ]
 classifiers = [
-  "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
@@ -44,7 +43,7 @@ Source = "https://github.com/magnesag/freeze-index"
 path = "freezing/__version__.py"
 
 [tool.hatch.build]
-packages=["freezing"]
+packages = ["freezing"]
 
 [tool.hatch.envs.hatch-test]
 default-args = ["."]
@@ -71,4 +70,3 @@ tests = ["**/test"]
 
 [tool.coverage.report]
 exclude_lines = ["no cov", "if __name__ == .__main__.:", "if TYPE_CHECKING:"]
-
