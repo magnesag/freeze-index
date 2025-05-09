@@ -1,13 +1,13 @@
 """!
-    Freezing Index Module
-    =====================
+Freezing Index Module
+=====================
 
-    This module features functions for the computation of freeze indices
-    such as the freezing index by Moore, the one by Bachlin, the one by
-    Cockx, and the multitaper FI introduced by Magnes AG.
+This module features functions for the computation of freeze indices
+such as the freezing index by Moore, the one by Bachlin, the one by
+Cockx, and the multitaper FI introduced by Magnes AG.
 
-    @author A. Schaer, C. Mangiante, R. Sobkuliak, H. Maurenbrecher
-    @copyright Magnes AG, (C) 2024.
+@author A. Schaer, C. Mangiante, R. Sobkuliak, H. Maurenbrecher
+@copyright Magnes AG, (C) 2024.
 """
 
 import enum
@@ -16,6 +16,7 @@ import logging
 import numpy as np
 from scipy import signal
 from scipy import fft
+from scipy import integrate
 
 
 class FREQUENCY_RANGE(enum.Enum):
@@ -143,8 +144,8 @@ def compute_fi_free_window(
     patho_f = np.linspace(*FREQUENCY_RANGE.FREEZING.value, freeze_ghost.shape[0])
     logger.debug(f"Locomotor frequency range: [{locomotor_f[0]}, {locomotor_f[-1]}]")
     logger.debug(f"Freezing frequency range: [{patho_f[0]}, {patho_f[-1]}]")
-    locomotor_power = np.trapz(locomotor_ghost, locomotor_f, axis=0)
-    freeze_power = np.trapz(freeze_ghost, patho_f, axis=0)
+    locomotor_power = integrate.trapezoid(locomotor_ghost, locomotor_f, axis=0)
+    freeze_power = integrate.trapezoid(freeze_ghost, patho_f, axis=0)
     fi = (freeze_power / (locomotor_power + np.spacing(1))) ** 2
     t = stf.t(len(x))
     t0 = 0
@@ -294,8 +295,8 @@ def compute_bachlin_fi(
         power_density = np.square(np.abs(X)) / n
         lpd = power_density[loco_idx]
         fpd = power_density[freeze_idx]
-        lp = np.trapz(lpd, f[loco_idx])
-        fp = np.trapz(fpd, f[freeze_idx])
+        lp = integrate.trapezoid(lpd, f[loco_idx])
+        fp = integrate.trapezoid(fpd, f[freeze_idx])
         fi.append(fp / (lp + np.spacing(1)))
 
     logger.debug(f"Number of FI samples {len(fi)}")
@@ -349,8 +350,8 @@ def compute_cockx_fi(
         power_density = np.square(np.abs(X)) / n
         lpd = power_density[loco_idx]
         fpd = power_density[freeze_idx]
-        lp = np.trapz(lpd, f[loco_idx])
-        fp = np.trapz(fpd, f[freeze_idx])
+        lp = integrate.trapezoid(lpd, f[loco_idx])
+        fp = integrate.trapezoid(fpd, f[freeze_idx])
         fi.append((fp / (lp + np.spacing(1))) ** 2)
 
     t = np.linspace(0, 1, len(fi) + 2)
@@ -424,8 +425,8 @@ def compute_multitaper_fi(
     freeze_ghost = ghost[freeze_slc, :].copy()
     locomotor_f = np.linspace(*F_LOCO, locomotor_ghost.shape[0])
     freeze_f = np.linspace(*F_FREEZE, freeze_ghost.shape[0])
-    locomotor_power = np.trapz(locomotor_ghost, locomotor_f, axis=0)
-    freeze_power = np.trapz(freeze_ghost, freeze_f, axis=0)
+    locomotor_power = integrate.trapezoid(locomotor_ghost, locomotor_f, axis=0)
+    freeze_power = integrate.trapezoid(freeze_ghost, freeze_f, axis=0)
     fi = freeze_power / (locomotor_power + np.spacing(1))
 
     t = stf.t(len(proxy))
