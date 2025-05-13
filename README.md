@@ -6,9 +6,10 @@ are the ones introduced by Bachlin [2], Cockx [3], Zach [4], in addition to
 Moore's [1] and the newly proposed multitaper method. This work has been
 published in Frontiers in Neurology, 16, 2025.
 
-Please cite this work/reporistory as:
+Please cite this work/repository as:
 
 > Schaer A, Maurenbrecher H, Mangiante C, Sobkuliak R, Müsch K, Sanchez Lopez P, Moraud EM, Ergeneman O, Chatzipirpiridis G. Toward a unified gait freeze index: a standardized benchmark for clinical and regulatory evaluations. Frontiers in Neurology, 16:1528963, 2025.
+
 
 ## Setup
 
