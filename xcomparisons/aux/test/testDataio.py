@@ -1,9 +1,9 @@
 """!
-    DataIO Unittesting
-    ==================
+DataIO Unittesting
+==================
 
-    @author A. Schaer
-    @copyright Magnes AG, (C) 2024.
+@author A. Schaer
+@copyright Magnes AG, (C) 2024.
 """
 
 import os
@@ -11,7 +11,7 @@ import unittest as ut
 
 import matplotlib.pyplot as pltlib
 
-from aux import dataio
+from xcomparisons.aux import dataio
 
 FILE_DIR = os.path.abspath(os.path.dirname(__file__))
 DATA_DIR = os.path.join(FILE_DIR, "data")

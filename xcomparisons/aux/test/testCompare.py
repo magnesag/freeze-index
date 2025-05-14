@@ -1,16 +1,16 @@
 """!
-    Compare Module Unittests
-    ========================
+Compare Module Unittests
+========================
 
-    @author A. Schaer
-    @copyright Magnes AG, (C) 2024.
+@author A. Schaer
+@copyright Magnes AG, (C) 2024.
 """
 
 import unittest as ut
 
 import numpy as np
 
-from aux import compare
+from xcomparisons.aux import compare
 
 
 class TestCompareFunctions(ut.TestCase):

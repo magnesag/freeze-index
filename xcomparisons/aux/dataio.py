@@ -1,11 +1,11 @@
 """!
-    Data IO
-    =======
+Data IO
+=======
 
-    This module contains functions for reading and writing data.
+This module contains functions for reading and writing data.
 
-    @author A. Schaer, R. Sobkuliak
-    @copyright Magnes AG, (C) 2024.
+@author A. Schaer, R. Sobkuliak
+@copyright Magnes AG, (C) 2024.
 """
 
 import dataclasses
@@ -17,7 +17,7 @@ from typing import Iterator
 import numpy as np
 from numpy import linalg
 
-from . import cfg
+from xcomparisons.aux import cfg
 
 logger = logging.getLogger(__name__)
 

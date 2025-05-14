@@ -1,9 +1,9 @@
 """!
-    FI Evaluation Configuration
-    ===========================
+FI Evaluation Configuration
+===========================
 
-    @author A. Schaer
-    @copyright Magnes AG, (C) 2024.
+@author A. Schaer
+@copyright Magnes AG, (C) 2024.
 """
 
 import os
@@ -12,7 +12,7 @@ import matplotlib.pyplot as pltlib
 
 ## Paths
 FILE_DIR = os.path.normpath(os.path.abspath(os.path.dirname(__file__)))
-ROOT_DIR = os.path.normpath(os.path.join(FILE_DIR, ".."))
+ROOT_DIR = os.path.normpath(os.path.join(FILE_DIR, "..", ".."))
 DATA_DIR = os.path.join(ROOT_DIR, "data", "dataset")
 RES_DIR = os.path.join(ROOT_DIR, "res")
 
@@ -33,7 +33,7 @@ MS2S = 1e-3
 MG2MPS2 = G * 1e-3
 
 ## Run options
-RUN_ONLY_ONE = False
+RUN_ONLY_ONE = True
 USE_TEX = False
 
 ## Plotting options
