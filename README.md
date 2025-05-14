@@ -72,7 +72,7 @@ python -m xcomparisons.simulation
 To compare FI definitions on the Daphnet dataset, run the script `run_variants_comparison.py`
 from root project directory as
 ```bash
-python -m xcomparisons.run_variants_comparison.py
+python -m xcomparisons.run_variants_comparison
 ```
 
 #### Multitaper Parameter Sweep
@@ -85,7 +85,7 @@ python -m xcomparisons.run_multitaper_sweep
 #### Proxy Evaluation
 To evaluate the effect of proxy choice on the FI for the multitaper definition, run
 ```bash
-python -m xcomparisons.run_proxy_sweep.py
+python -m xcomparisons.run_proxy_sweep
 ```
 
 ## References
