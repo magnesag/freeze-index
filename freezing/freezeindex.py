@@ -1,4 +1,4 @@
-"""!
+"""
 Freezing Index Module
 =====================
 
@@ -6,8 +6,16 @@ This module features functions for the computation of freeze indices
 such as the freezing index by Moore, the one by Bachlin, the one by
 Cockx, and the multitaper FI introduced by Magnes AG.
 
-@author A. Schaer, C. Mangiante, R. Sobkuliak, H. Maurenbrecher
-@copyright Magnes AG, (C) 2024.
+If you use this code for any scientific publication, please cite
+https://doi.org/10.3389/fneur.2025.1528963.
+
+Authors:
+    - A. Schaer
+    - C. Mangiante
+    - R. Sobkuliak
+    - H. Maurenbrecher
+Copyright:
+    Magnes AG, (C) 2024.
 """
 
 import enum
@@ -44,7 +52,7 @@ class VARIANTS(str, enum.Enum):
 # This is meant to mimimize deviations from the original definitions.
 # It should be noted though, that increasing this value will start to show the importance of
 # adequate preprocessing steps in the spectrogram evaluation.
-MIN_FFT_WINDOW_SIZE = 128
+MIN_FFT_WINDOW_SIZE = 256
 HOP_DIV = 32
 
 logger = logging.getLogger(__name__)
@@ -509,6 +517,6 @@ def combine_fis(
     @param rfi Second (right) FI array
     @return
     """
-
-    t = np.linspace(min(lt[0], rt[0]), max(lt[-1], rt[-1]), np.lcm(len(lt), len(rt)))
+    N = max(len(lt), len(rt))
+    t = np.linspace(min(lt[0], rt[0]), max(lt[-1], rt[-1]), N)
     return t, np.max(np.vstack([np.interp(t, lt, lfi), np.interp(t, rt, rfi)]), axis=0)
