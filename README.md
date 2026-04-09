@@ -42,15 +42,14 @@ CC BY 4.0 license and the data can be found under `data/` folder.
 Source (accessed on 19.08.2024): https://archive.ics.uci.edu/dataset/245/daphnet+freezing+of+gait
 
 ### Python Environment for Source Usage
-To manage Python library dependencies, Python virtual environment is used. Run the
-following from the root project directory (assuming `python --version >=3.10`):
+To manage Python library dependencies, it is strongly suggested to use [`uv`](https://docs.astral.sh/uv/):
 ```sh
-# Create Python virtual environment
-python -m venv venv
-# Activate it
-. ./venv/bin/activate
-# Install dependencies
-pip install -r requirements.txt
+# Set up environment
+uv sync
+# Run $module with
+uv run $module
+# Run tests with
+uv run pytest
 ```
 
 ### Executable Comparisons `xcomparisons`
@@ -65,27 +64,27 @@ Results are sorted by input file and proxy choice.
 To evaluate the FI definitions' theoretical performance when computing the FI on
 white noise run the `simulation.py` script from the root directory as
 ```bash
-python -m xcomparisons.simulation
+uv run -m xcomparisons.simulation
 ```
 
 #### Definitions Comparison
 To compare FI definitions on the Daphnet dataset, run the script `run_variants_comparison.py`
 from root project directory as
 ```bash
-python -m xcomparisons.run_variants_comparison
+uv run -m xcomparisons.run_variants_comparison
 ```
 
 #### Multitaper Parameter Sweep
 To run the multitaper parametric sweep and thus to inspect the effects of each parameter
 of the multitaper method on the FI run
 ```bash
-python -m xcomparisons.run_multitaper_sweep
+uv run -m xcomparisons.run_multitaper_sweep
 ```
 
 #### Proxy Evaluation
 To evaluate the effect of proxy choice on the FI for the multitaper definition, run
 ```bash
-python -m xcomparisons.run_proxy_sweep
+uv run -m xcomparisons.run_proxy_sweep
 ```
 
 ## References

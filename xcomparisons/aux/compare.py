@@ -1,11 +1,14 @@
-"""!
+"""
 Compare Module
 ==============
 
-This module implements functions for the comparison of FIs computed using different methds.
+This module implements functions for the comparison of FIs computed using
+different methods.
 
-@author A. Schaer
-@copyright Magnes AG, (C) 2024.
+Author:
+    A. Schaer
+Copyright:
+    Magnes AG, (C) 2024.
 """
 
 import dataclasses
@@ -27,7 +30,19 @@ logger = logging.getLogger(__name__)
 
 @dataclasses.dataclass
 class ComparisonMetrics:
-    """!Comparison metrics for FIs"""
+    """Pairwise comparison metrics for a set of FI estimates.
+
+    Attributes
+    ----------
+    mad : np.ndarray
+        Pairwise mean absolute deviation matrix.
+    rho : np.ndarray
+        Pairwise Pearson correlation coefficient matrix.
+    r2 : np.ndarray
+        Pairwise coefficient of determination matrix.
+    names : list[str]
+        Names of the compared FI variants.
+    """
 
     mad: np.ndarray
     rho: np.ndarray
@@ -35,18 +50,31 @@ class ComparisonMetrics:
     names: list[str]
 
     def __post_init__(self) -> None:
-        """!Post-initialization"""
+        """Store the number of compared variants."""
         self._n = len(self.names)
 
     def __iter__(self):
+        """Iterate over the metric matrices (mad, rho, r2)."""
         for x in (self.mad, self.rho, self.r2):
             yield x
 
     def compute_metrics_iou(self, name: str) -> tuple[float, float, float]:
-        """!Compute the IOU of the spanned ranges when leaving the selected case out
+        """Compute the IOU of the spanned ranges leaving one case out.
 
-        @param name Name of the case to be compared to all others
-        @return IOU(MAD), IOU(rho), IOU(R2)
+        Parameters
+        ----------
+        name : str
+            Name of the case to compare against all others.
+
+        Returns
+        -------
+        tuple[float, float, float]
+            IOU of the MAD, rho, and R² value ranges.
+
+        Raises
+        ------
+        ValueError
+            If ``name`` is not present in ``self.names``.
         """
         if name not in self.names:
             raise ValueError(f"Provided case {name} is not in {self.names}")
@@ -68,9 +96,13 @@ class ComparisonMetrics:
         return tuple(res)
 
     def visualize(self, dest: str = None) -> None:
-        """!Visualize the comparison metrics
+        """Visualize the comparison metrics as a similarity matrix.
 
-        @param dest optional destination to dump plot (Default: None)
+        Parameters
+        ----------
+        dest : str, optional
+            Directory where the plot is saved. If ``None``, saves in the
+            current working directory, by default None.
         """
         minmad = np.nanmin(self.mad)
         maxmad = np.nanmax(self.mad)
@@ -120,17 +152,25 @@ class ComparisonMetrics:
         axs.set_yticklabels([case.title() for case in self.names])
         fig.tight_layout()
         if dest is None:
-            fig.savefig(f"similarity-matrix")
+            fig.savefig("similarity-matrix")
         else:
-            fig.savefig(os.path.join(dest, f"similarity-matrix"))
+            fig.savefig(os.path.join(dest, "similarity-matrix"))
 
     @staticmethod
     def compute_iou(seta: list[float], setb: list[float]) -> float:
-        """!Compute the IOU of the ranges spanned by set A and set B
+        """Compute the IOU of the value ranges spanned by two sets.
 
-        @param seta Elements of A
-        @param setb Elements of B
-        @return IOU or ranges spanned by A and B
+        Parameters
+        ----------
+        seta : list[float]
+            Elements of set A.
+        setb : list[float]
+            Elements of set B.
+
+        Returns
+        -------
+        float
+            IOU of the ranges spanned by A and B.
         """
         maxa = max(seta)
         maxb = max(setb)
@@ -146,20 +186,35 @@ class ComparisonMetrics:
 
 
 def standardize(x: np.ndarray) -> np.ndarray:
-    """!Standardize a vector/time series
+    """Standardize a vector or time series to zero mean and unit variance.
 
-    @param x The vector/time series to be standardized.
-    @return The standardized vector/time series.
+    Parameters
+    ----------
+    x : np.ndarray
+        The vector or time series to standardize.
+
+    Returns
+    -------
+    np.ndarray
+        The standardized vector or time series.
     """
     return (x - np.nanmean(x)) / np.nanstd(x)
 
 
 def resample_to_n_samples(x: np.ndarray, n: int) -> np.ndarray:
-    """!Resample a vector/time series to a specified number of samples
+    """Resample a vector or time series to a specified number of samples.
 
-    @param x The input vector/time series to be resampled.
-    @param n The desired number of samples in the output.
-    @return The resampled vector/time series with n samples.
+    Parameters
+    ----------
+    x : np.ndarray
+        The input vector or time series to resample.
+    n : int
+        The desired number of samples in the output.
+
+    Returns
+    -------
+    np.ndarray
+        The resampled vector or time series with ``n`` samples.
     """
     original_length = len(x)
     if original_length == n:
@@ -171,11 +226,19 @@ def resample_to_n_samples(x: np.ndarray, n: int) -> np.ndarray:
 
 
 def compare_signals(xs: np.ndarray, names: list[str]) -> ComparisonMetrics:
-    """!Compare signals
+    """Compute pairwise comparison metrics for a set of signals.
 
-    @param xs The signals to be compared: each _row_ is a signal/variable
-    @param names The names of the signals.
-    @return TBD
+    Parameters
+    ----------
+    xs : np.ndarray
+        Signals to compare; each row is one signal.
+    names : list[str]
+        Names of the signals.
+
+    Returns
+    -------
+    ComparisonMetrics
+        Pairwise MAD, Pearson correlation, and R² matrices.
     """
     n = len(names)
     rho = np.corrcoef(xs)
@@ -199,12 +262,19 @@ def draw_all_comparisons(
     names: list[str],
     dest: str = None,
 ):
-    """!Plot direct comparisons between different proxies
+    """Plot direct scatter-plot comparisons between all pairs of signals.
 
-    @param xs Dictionary of proxy values
-    @param metrics Comparison metrics
-    @param names Case names
-    @param dest Image file destination (directory)
+    Parameters
+    ----------
+    xs : dict[str, np.ndarray]
+        Dictionary of proxy signal arrays.
+    metrics : ComparisonMetrics
+        Pairwise comparison metrics.
+    names : list[str]
+        Case names.
+    dest : str, optional
+        Directory where the plot is saved. If ``None``, saves in the
+        current working directory, by default None.
     """
     logger.info("Drawing direct comparison")
     n_variants = xs.shape[0]
@@ -270,11 +340,16 @@ def draw_all_comparisons(
 
 
 def mark_fog_regions_on_axs(t: np.ndarray, flag: np.ndarray, axs: pltlib.axes):
-    """!Mark FOG region on axes
+    """Mark FOG regions as shaded spans on a matplotlib axes object.
 
-    @param t Time array
-    @param flag FOG flag array
-    @param axs Axes on whicht to draw FOG regions
+    Parameters
+    ----------
+    t : np.ndarray
+        Time array.
+    flag : np.ndarray
+        FOG flag array; positive transitions mark FOG onset.
+    axs : pltlib.axes
+        Axes on which to draw the FOG regions.
     """
     fog_starts = np.arange(len(flag) - 1)[np.diff(flag) > 0]
     fog_stops = np.arange(len(flag) - 1)[np.diff(flag) < 0]
@@ -289,27 +364,35 @@ def overlay(
     dest: str = None,
     standardized: bool = False,
 ):
-    """Overlay estimates of Freeze Index (FI) from different methods on a single plot.
+    """Overlay FI estimates from multiple methods on a single plot.
 
-    This function creates a plot that overlays FI estimates from various methods,
-    highlighting periods of FOG with gray shading. It saves the resulting plot as an image file.
+    FOG periods are highlighted with gray shading. The resulting figure
+    is saved to disk.
 
-    Side effects
-    - Creates and saves a matplotlib figure as an image file.
-    - The filename is either 'fi-overlay-standardized' or 'fi-overlay', depending on
-      the 'standardized' parameter.
-    - If 'dest' is provided, the file is saved in that directory; otherwise, it's saved
-      in the current working directory.
+    Parameters
+    ----------
+    t : np.ndarray
+        1D array of recording time values.
+    estimates : dict[str, np.ndarray]
+        FI estimates keyed by method name; each value is a dictionary
+        with ``"t"`` (time) and ``"fi"`` (freeze index) arrays.
+    flag : np.ndarray
+        1D boolean array indicating FOG presence at each time point.
+    dest : str, optional
+        Directory where the plot is saved. If ``None``, saves in the
+        current working directory, by default None.
+    standardized : bool, optional
+        If ``True``, the filename and y-axis label reflect standardized
+        FI values, by default False.
 
-    @param t 1D array of time values corresponding to the FI estimates.
-    @param estimates A dictionary where keys are method names (e.g., 'multitaper') and values are  dictionaries containing 't' (time) and 'fi' (freeze index) arrays.
-    @param flag 1D boolean array indicating the presence of FOG (True) or absence (False) at each time point.
-    @param dest Destination directory for saving the plot. If None, saves in the current directory. Default is None.
-    @param standardized If True, standardized FI values are assumed and includes this in the filename and y-axis label. Default is False.
+    Notes
+    -----
+    The figure is saved as ``fi-overlay-standardized`` or ``fi-overlay``
+    depending on ``standardized``.
     """
     logger.info("Drawing ovelray comparison")
     YLABEL = "Standardized FI [-]" if standardized else "FI [-]"
-    fn = f"fi-overlay-standardized" if standardized else f"fi-overlay"
+    fn = "fi-overlay-standardized" if standardized else "fi-overlay"
     n = len(estimates)
     colors = cfg.generate_n_colors_from_cmap(n, cfg.COMP_CM)
     if "multitaper" in estimates.keys():
@@ -347,10 +430,15 @@ def overlay(
 
 
 def draw_fi_spectra(estimates: dict[str, np.ndarray], dest: str):
-    """!Draw spectra of the FI estimates
+    """Draw the power spectra of the FI estimates.
 
-    @param estimates FI estimates
-    @param dest Destination where to store plot
+    Parameters
+    ----------
+    estimates : dict[str, np.ndarray]
+        FI estimates keyed by method name; each value is a dictionary
+        with ``"t"`` (time) and ``"fi"`` (freeze index) arrays.
+    dest : str
+        Directory where the plot is saved.
     """
     logger.info("Drawing spectra")
     spectra = []
@@ -407,13 +495,28 @@ def compare_fis(
     flag: np.ndarray,
     standardized: bool = True,
 ) -> tuple[ComparisonMetrics, list[str]]:
-    """!Compare FIs
+    """Compute metrics and generate comparison plots for a set of FI estimates.
 
-    @param t Time array
-    @param estimates FI estimates
-    @param dest Destination where to store images (plots)
-    @param flag FOG signal array
-    @param standardized Whether FIs are standardized (Default: True)
+    Parameters
+    ----------
+    t : np.ndarray
+        Recording time array.
+    estimates : dict[str, dict[str, np.ndarray]]
+        FI estimates keyed by variant name, each containing ``"t"`` and
+        ``"fi"`` arrays.
+    dest : str
+        Directory where plots are saved.
+    flag : np.ndarray
+        FOG flag signal array.
+    standardized : bool, optional
+        Whether the FI values are standardized, by default True.
+
+    Returns
+    -------
+    comparison_metrics : ComparisonMetrics
+        Pairwise comparison metrics for the provided FI estimates.
+    names : list[str]
+        Names of the compared FI variants.
     """
     logger.info("Comparing FIs")
     n = max(len(case["fi"]) for case in estimates.values())
@@ -441,15 +544,26 @@ def draw_sweep_comparison(
     flags: np.ndarray = None,
     standardized: bool = True,
 ):
-    """!Draw sweep comparison
+    """Draw a sweep comparison plot for a single swept parameter.
 
-    @param t Time array
-    @param param_values Sweep parameter values
-    @param estimates FI estimates for each parameter value
-    @param param_name_label Parameter-name and axis-label pairs
-    @param dest Destination where to store plots
-    @param flags FOG regions signal
-    @param standardized Whether the FIs are standardized
+    Parameters
+    ----------
+    t : np.ndarray
+        Recording time array.
+    param_values : np.ndarray
+        Values of the swept parameter.
+    estimates : list[dict[str, np.ndarray]]
+        FI estimates for each parameter value; each entry contains
+        ``"t"`` and ``"fi"`` arrays.
+    param_name_label : tuple[str, str]
+        Tuple of (file-name stem, axis label) for the swept parameter.
+    dest : str, optional
+        Directory where the plot is saved. If ``None``, saves in the
+        current working directory, by default None.
+    flags : np.ndarray, optional
+        FOG flag signal used to shade FOG regions, by default None.
+    standardized : bool, optional
+        Whether the FI values are standardized, by default True.
     """
     logger.info("Drawing sweep plot")
     fn = f"{param_name_label[0]}-sweep"
@@ -465,7 +579,7 @@ def draw_sweep_comparison(
         ax=axs,
         label=param_name_label[1],
     )
-    if not flags is None:
+    if flags is not None:
         mark_fog_regions_on_axs(t, flags, axs)
     axs.grid(True)
     axs.set(
@@ -481,7 +595,7 @@ def draw_sweep_comparison(
         axs.set_ylim((2, 10))
 
     fig.tight_layout()
-    if not dest is None:
+    if dest is not None:
         fn = os.path.join(dest, fn)
 
     fig.savefig(fn)
@@ -491,7 +605,20 @@ def draw_sweep_comparison(
 def compute_and_visualize_ious(
     comparison: ComparisonMetrics, dest: str
 ) -> dict[str, list[float]]:
-    """!Compute and visualize IOUs"""
+    """Compute and plot pairwise IOU metrics for all compared variants.
+
+    Parameters
+    ----------
+    comparison : ComparisonMetrics
+        Pairwise comparison metrics.
+    dest : str
+        Directory where plots are saved.
+
+    Returns
+    -------
+    dict[str, list[float]]
+        IOU values for MAD, rho, and R², keyed by metric name.
+    """
     ious = {"mad": [], "rho": [], "r2": []}
     for name in comparison.names:
         mad, rho, r2 = comparison.compute_metrics_iou(name)
