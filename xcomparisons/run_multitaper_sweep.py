@@ -1,15 +1,18 @@
-#!/usr/bin/env python3.9 -O
-"""!
+"""
 Evaluation of the FI for Various Multitaper Parameter Options
 =============================================================
 
-This script evaluates the multitaper FI for various parameter options on the Daphnet data.
-It is run using multiprocess to speed things up by default. To change this behavior,
-set the `WITH_MULTI_PROCESSING = False`.
+This script evaluates the multitaper FI for various parameter options on
+the Daphnet data. It is run using multiprocess to speed things up by
+default. To change this behavior, set ``WITH_MULTI_PROCESSING = False``.
 
-@author A. Schaer, H. Maurenbrecher
-@copyright Magnes AG, (C) 2024.
+Authors:
+    - A. Schaer
+    - H. Maurenbrecher
+Copyright:
+    Magnes AG, (C) 2024.
 """
+
 import enum
 import itertools
 import json
@@ -49,6 +52,20 @@ RES_FN = os.path.join(RES_SUBDIR, "fis.json")
 
 
 class SweepParam(str, enum.Enum):
+    """Multitaper FI parameters available for parametric sweeping.
+
+    Attributes
+    ----------
+    T : str
+        Time window duration ``dt``.
+    L : str
+        Number of tapers ``L``.
+    NW : str
+        DPSS half-bandwidth parameter ``NW``.
+    LFTF : str
+        Locomotion-Freeze-Threshold Frequency ``LFTF``.
+    """
+
     T: str = "dt"
     L: str = "L"
     NW: str = "NW"
@@ -56,9 +73,12 @@ class SweepParam(str, enum.Enum):
 
 
 def setup() -> list[str]:
-    """!Setup the environment and parse the CLI arguments
+    """Set up the environment and return the list of data files.
 
-    @return List of datafiles
+    Returns
+    -------
+    list[str]
+        List of data file paths.
     """
     if __name__ == "__main__":
         logger.info(__doc__)
@@ -79,13 +99,26 @@ def eval_fi(
     multitaper_kwargs: dict[str, float],
     standardize: bool = True,
 ) -> dict[str, dict[str, np.ndarray]]:
-    """!Evaluate FIs
+    """Evaluate the multitaper FI on the given proxy signal.
 
-    @param t Time array of raw-data
-    @param proxy Proxy signal from which to evaluate the FI
-    @param fs sampling frequency
-    @param multitaper_kwargs passed to `frz.multitaper()`
-    @param standardize Whether to standardize the FI values (Default: True)
+    Parameters
+    ----------
+    t : np.ndarray
+        Time array of raw data.
+    proxy : np.ndarray
+        Proxy signal from which to evaluate the FI.
+    fs : float
+        Sampling frequency in Hz.
+    multitaper_kwargs : dict[str, float]
+        Keyword arguments passed to ``frz.compute_multitaper_fi()``.
+    standardize : bool, optional
+        Whether to standardize the FI values, by default True.
+
+    Returns
+    -------
+    dict[str, np.ndarray]
+        Dictionary containing ``"t"`` (time) and ``"fi"`` (freeze index)
+        arrays.
     """
     recording_time = t[-1] - t[0]
     fi_t, fi = frz.compute_multitaper_fi(proxy, fs, **multitaper_kwargs)
@@ -98,12 +131,23 @@ def eval_fi(
 
 def single_file_mutlitaper_sweep(
     filepath: str, standardize: bool, sweeping_param: SweepParam
-) -> None:
-    """!Evaluate FIs on Daphnet sets
+) -> dict:
+    """Run a multitaper parameter sweep for a single Daphnet file.
 
-    @param fns Data files (filenames with path)
-    @param standardize Whether to standardize the FI values
-    @param sweeping_param Parameter being swept
+    Parameters
+    ----------
+    filepath : str
+        Path to the data file.
+    standardize : bool
+        Whether to standardize the FI values.
+    sweeping_param : SweepParam
+        Parameter to sweep over its predefined range.
+
+    Returns
+    -------
+    dict or None
+        Dictionary with ``"_id"`` and ``"res"`` keys if at least one
+        window succeeded; ``None`` if all windows failed.
     """
     res = None
 
@@ -164,8 +208,23 @@ def single_file_mutlitaper_sweep(
 
 def compare_fi_for_multitaper_parametric_sweep(
     fps: list[str], standardize: bool, sweeping_param: SweepParam
-):
-    """!Compare FI for Multitaper Parametric Sweep"""
+) -> dict:
+    """Compare the multitaper FI over a parametric sweep across all files.
+
+    Parameters
+    ----------
+    fps : list[str]
+        Data file paths.
+    standardize : bool
+        Whether to standardize the FI values.
+    sweeping_param : SweepParam
+        Parameter to sweep.
+
+    Returns
+    -------
+    dict
+        Sweep results keyed by file identifier.
+    """
     res = {}
 
     if WITH_MULTI_PROCESSING:
@@ -196,6 +255,7 @@ def compare_fi_for_multitaper_parametric_sweep(
 
 
 def main() -> None:
+    """Run the multitaper parametric sweep for all parameters."""
     files = setup()
     res = {}
     for sp in SweepParam:

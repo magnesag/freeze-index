@@ -1,22 +1,22 @@
-"""!
-    Test the Freeze Index Module
-    ============================
+"""
+Test the Freeze Index Module
+============================
 
-    @author A. Schaer
-    @copyright Magnes AG, (C) 2024.
+Author:
+    - A. Schaer
+Copyright:
+    Magnes AG, (C) 2024.
 """
 
 import os
-
-import sys
 import unittest as ut
 
 import matplotlib.pyplot as pltlib
 import numpy as np
 
+import freezing.freezeindex as frz
 
 FILE_DIR = os.path.abspath(os.path.dirname(__file__))
-ROOT = os.path.join(FILE_DIR, "..", "..")
 RES_DIR = os.path.join(FILE_DIR, "res")
 PLT_RC = {
     "figure": {"figsize": (10, 5)},
@@ -25,10 +25,6 @@ PLT_RC = {
     "text": {"usetex": False},
 }
 
-
-sys.path.append(ROOT)
-
-import freezing.freezeindex as frz
 
 for kk, vv in PLT_RC.items():
     pltlib.rc(kk, **vv)

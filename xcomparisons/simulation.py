@@ -1,17 +1,25 @@
-"""!
-    Simulated Signal Inspection
-    ===========================
+"""
+Simulated Signal Inspection
+===========================
 
-    Evaluate the performance of the FI definitions with simulated white noise signals. For white
-    noise inputs, an expected FI value can be computed analytically. Ideally, the FI for white
-    noise is a constant, and the value matches the theoretical value. As white noise is a mathematical
-    construct, the performance is evaluated by two metrics:
-    * The FI standard deviation, to gauge the variability of the FI regardless of the theoretical value
-    * The RMSE w.r.t. the theoretical value.
-    In order to minimize the effects of random sampling, the metrics are computed for M runs.
+Evaluate the performance of the FI definitions with simulated white noise
+signals. For white noise inputs, an expected FI value can be computed
+analytically. Ideally, the FI for white noise is a constant and the value
+matches the theoretical value. As white noise is a mathematical construct,
+the performance is evaluated by two metrics:
 
-    @author A. Schaer, H. Maurenbrecher
-    @copyright Magnes AG, (C) 2024
+- The FI standard deviation, to gauge the variability of the FI regardless
+  of the theoretical value.
+- The RMSE w.r.t. the theoretical value.
+
+In order to minimize the effects of random sampling, the metrics are
+computed for M runs.
+
+Authors:
+    - A. Schaer
+    - H. Maurenbrecher
+Copyright:
+    Magnes AG, (C) 2024.
 """
 
 import json
@@ -32,6 +40,16 @@ logger = logging.getLogger(__name__)
 
 
 class CFG:
+    """Simulation configuration constants.
+
+    Attributes
+    ----------
+    t1 : float
+        Signal duration in seconds, 100.0.
+    M : int
+        Number of Monte Carlo runs per sampling frequency, 10.
+    """
+
     t1: float = 100.0
     M: int = 10
 
@@ -67,13 +85,24 @@ SAMPLING_FREQUENCIES = (64.0, 100.0, 256.0, 1000.0)
 def run_sims(
     m: int,
 ) -> tuple[list[dict[str, dict[str, list[float]]]], dict[str, list[float]]]:
-    """!Run the white-noise simulations
+    """Run the white-noise simulations.
 
-    Run m FI estimations with all implemented variants for each sampling frequency. FI performance
-    metrics for each run are dumped in a JSON results file.
+    Runs ``m`` FI estimations with all implemented variants for each
+    sampling frequency. FI performance metrics for each run are dumped
+    in a JSON results file.
 
-    @param m Number of evaluations to be run for each sampling frequency
-    @return Collection of FI standard deviations and RMSE, grouped by sampling frequency and FI implementation, and the last FI values
+    Parameters
+    ----------
+    m : int
+        Number of evaluations to run for each sampling frequency.
+
+    Returns
+    -------
+    res : list[dict[str, dict[str, list[float]]]]
+        Collection of FI standard deviations and RMSE, grouped by
+        sampling frequency and FI implementation.
+    latest_res : dict[str, list[float]]
+        Last FI values for each variant.
     """
     latest_res = {}
     res = []
@@ -105,9 +134,13 @@ def run_sims(
 
 
 def report_error_stats(errors: list[dict[str, dict[str, list[float]]]]):
-    """!Print report stats
+    """Print a tabular report of FI error metrics.
 
-    @param errors Performance metrics (errors), by sampling frequency and implementation variant
+    Parameters
+    ----------
+    errors : list[dict[str, dict[str, list[float]]]]
+        Performance metrics (standard deviation and RMSE), grouped by
+        sampling frequency and implementation variant.
     """
     logger.info("FI Definitions Error Metrics Comparison")
     header = f"{'Sampling Frequency [Hz]':>22} {'Estimation Method':>17} {'STD':>11} {'RMSE':>11}"
@@ -129,9 +162,10 @@ def report_error_stats(errors: list[dict[str, dict[str, list[float]]]]):
 
 
 def main():
+    """Run the simulation and report error statistics."""
     logger.info(__doc__)
     logger.info(f"Theoretical FI values: {THEORETICAL_FI}")
-    # @note Seeding the random number generator before the simulations for reproducible results
+    # NOTE Seeding the random number generator before the simulations for reproducible results
     np.random.seed(0)
     errors, fis = run_sims(CFG.M)
     report_error_stats(errors)

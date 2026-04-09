@@ -1,13 +1,16 @@
-#!/usr/bin/env python3.9 -O
-"""!
+"""
 Evaluation of the FI for Various Proxy Signals on Daphnet Data
 ==============================================================
 
-This script evaluates the multitaper FI for various proxy choices on the Daphnet data.
+This script evaluates the multitaper FI for various proxy choices on
+the Daphnet data.
 
-@author A. Schaer
-@copyright Magnes AG, (C) 2024.
+Author:
+    A. Schaer
+Copyright:
+    Magnes AG, (C) 2024.
 """
+
 import json
 import logging
 import os
@@ -24,9 +27,12 @@ logger = logging.getLogger(__name__)
 
 
 def setup() -> list[str]:
-    """!Setup the environment and parse the CLI arguments
+    """Set up the environment and return the list of data files.
 
-    @return List of datafiles
+    Returns
+    -------
+    list[str]
+        List of data file paths.
     """
     logger.info(__doc__)
     warnings.filterwarnings("error")
@@ -44,13 +50,25 @@ def eval_fi(
     proxy: np.ndarray,
     fs: float,
     standardize: bool = True,
-) -> dict[str, dict[str, np.ndarray]]:
-    """!Evaluate FIs
+) -> dict[str, np.ndarray]:
+    """Evaluate the multitaper FI on the given proxy signal.
 
-    @param t Time array of raw-data
-    @param proxy Proxy signal from which to evaluate the FI
-    @param fs sampling frequency
-    @param standardize Whether to standardize the FI values (Default: False)
+    Parameters
+    ----------
+    t : np.ndarray
+        Time array of raw data.
+    proxy : np.ndarray
+        Proxy signal from which to evaluate the FI.
+    fs : float
+        Sampling frequency in Hz.
+    standardize : bool, optional
+        Whether to standardize the FI values, by default True.
+
+    Returns
+    -------
+    dict[str, np.ndarray]
+        Dictionary containing ``"t"`` (time) and ``"fi"`` (freeze index)
+        arrays.
     """
     recording_time = t[-1] - t[0]
     fi_t, fi = frz.compute_multitaper_fi(proxy, fs)
@@ -64,11 +82,17 @@ def eval_fi(
 def compare_fi_for_proxys(
     fns: list[str], standardize: bool, force: bool = False
 ) -> None:
-    """!Evaluate FIs on Daphnet sets
+    """Evaluate and compare the multitaper FI for all proxy choices.
 
-    @param fns Data files (filenames with path)
-    @param standardize Whether to standardize the FI values
-    @param force Whether to force computation or try to load from cache (Default: False)
+    Parameters
+    ----------
+    fns : list[str]
+        Data file paths.
+    standardize : bool
+        Whether to standardize the FI values before comparison.
+    force : bool, optional
+        Whether to force recomputation instead of loading from cache,
+        by default False.
     """
 
     for fn in fns:
@@ -136,6 +160,7 @@ def compare_fi_for_proxys(
 
 
 def main() -> None:
+    """Run the proxy sweep comparison."""
     files = setup()
     compare_fi_for_proxys(
         fns=files,

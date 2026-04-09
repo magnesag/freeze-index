@@ -1,13 +1,15 @@
-#!/usr/bin/env python3.9 -O
-"""!
+"""
 Evaluation of the FI Variants on Daphnet Data
 =============================================
 
 This script evaluates the variants of the FI definition on the Daphnet data.
 
-@author A. Schaer
-@copyright Magnes AG, (C) 2024.
+Author:
+    A. Schaer
+Copyright:
+    Magnes AG, (C) 2024.
 """
+
 import json
 import logging
 import os
@@ -25,9 +27,12 @@ logger = logging.getLogger(__name__)
 
 
 def setup() -> list[str]:
-    """!Setup the environment and parse the CLI arguments
+    """Set up the environment and return the list of data files.
 
-    @return List of datafiles
+    Returns
+    -------
+    list[str]
+        List of data file paths.
     """
     logger.info(__doc__)
     warnings.filterwarnings("error")
@@ -46,13 +51,24 @@ def eval_fis(
     fs: float,
     standardize: bool = True,
 ) -> dict[str, dict[str, np.ndarray]]:
-    """!Evaluate FIs
+    """Evaluate all FI variants on the given proxy signal.
 
-    @param t Time array of raw-data
-    @param proxy Proxy signal from which to evaluate the FI
-    @param fs sampling frequency
-    @param standardize Whether to standardize the FI values (Default: True)
-    @return result in dict fmt
+    Parameters
+    ----------
+    t : np.ndarray
+        Time array of raw data.
+    proxy : np.ndarray
+        Proxy signal from which to evaluate the FI.
+    fs : float
+        Sampling frequency in Hz.
+    standardize : bool, optional
+        Whether to standardize the FI values, by default True.
+
+    Returns
+    -------
+    dict[str, dict[str, np.ndarray]]
+        FI results keyed by variant name, each containing ``"t"`` and
+        ``"fi"`` arrays.
     """
     recording_time = t[-1] - t[0]
 
@@ -70,11 +86,16 @@ def eval_fis(
 def compare_implementations_for_proxy(
     fns: list[str], standardize: bool, proxy_choice: dataio.ProxyChoice
 ) -> None:
-    """!Evaluate FIs on Daphnet sets
+    """Evaluate and compare all FI variants on Daphnet data files.
 
-    @param fns Data files (filenames with path)
-    @param standardize Whether to standardize the FI values
-    @param proxy_choice Proxy signal of choice
+    Parameters
+    ----------
+    fns : list[str]
+        Data file paths.
+    standardize : bool
+        Whether to standardize the FI values before comparison.
+    proxy_choice : dataio.ProxyChoice
+        Proxy signal to use for FI computation.
     """
     cres = {}
     all_fis = {}
@@ -123,7 +144,7 @@ def compare_implementations_for_proxy(
                 logger.warning("Run only one is enabled, exiting")
                 break
 
-        except IndexError as e:
+        except IndexError:
             pass
 
     with open(os.path.join(dest_subdir, "..", "comp-res.json"), "w") as fp:
@@ -134,6 +155,7 @@ def compare_implementations_for_proxy(
 
 
 def main() -> None:
+    """Run the FI variant comparison for all proxy choices."""
     files = setup()
     for choice in dataio.ProxyChoice:
         logger.info(f"Evaluating FIs on proxy {choice}")

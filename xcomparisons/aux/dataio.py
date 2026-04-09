@@ -1,11 +1,14 @@
-"""!
+"""
 Data IO
 =======
 
 This module contains functions for reading and writing data.
 
-@author A. Schaer, R. Sobkuliak
-@copyright Magnes AG, (C) 2024.
+Authors:
+    - A. Schaer
+    - R. Sobkuliak
+Copyright:
+    Magnes AG, (C) 2024.
 """
 
 import dataclasses
@@ -24,6 +27,42 @@ logger = logging.getLogger(__name__)
 
 ## Proxy options
 class ProxyChoice(str, enum.Enum):
+    """Proxy signal choices available in the Daphnet dataset.
+
+    Attributes
+    ----------
+    LUMBAR_X : str
+        Lumbar accelerometer, x-axis.
+    LUMBAR_Y : str
+        Lumbar accelerometer, y-axis.
+    LUMBAR_Z : str
+        Lumbar accelerometer, z-axis.
+    LUMBAR_M : str
+        Lumbar accelerometer, Euclidean magnitude.
+    LUMBAR_SUM : str
+        Lumbar accelerometer, element-wise sum.
+    THIGH_X : str
+        Thigh accelerometer, x-axis.
+    THIGH_Y : str
+        Thigh accelerometer, y-axis.
+    THIGH_Z : str
+        Thigh accelerometer, z-axis.
+    THIGH_M : str
+        Thigh accelerometer, Euclidean magnitude.
+    THIGH_SUM : str
+        Thigh accelerometer, element-wise sum.
+    SHANK_X : str
+        Shank accelerometer, x-axis.
+    SHANK_Y : str
+        Shank accelerometer, y-axis.
+    SHANK_Z : str
+        Shank accelerometer, z-axis.
+    SHANK_M : str
+        Shank accelerometer, Euclidean magnitude.
+    SHANK_SUM : str
+        Shank accelerometer, element-wise sum.
+    """
+
     LUMBAR_X: str = "lumbar-x"
     LUMBAR_Y: str = "lumbar-y"
     LUMBAR_Z: str = "lumbar-z"
@@ -43,28 +82,78 @@ class ProxyChoice(str, enum.Enum):
 
 @dataclasses.dataclass
 class _3DSignal:
+    """Container for a three-axis accelerometer signal.
+
+    Attributes
+    ----------
+    x : np.ndarray
+        Signal along the x-axis.
+    y : np.ndarray
+        Signal along the y-axis.
+    z : np.ndarray
+        Signal along the z-axis.
+    """
+
     x: np.ndarray
     y: np.ndarray
     z: np.ndarray
 
     @property
     def norm(self) -> np.ndarray:
+        """Euclidean norm of the 3D signal at each sample.
+
+        Returns
+        -------
+        np.ndarray
+            Sample-wise Euclidean norm.
+        """
         return linalg.norm(self.asarray(), axis=0)
 
     @property
     def sum(self) -> np.ndarray:
+        """Element-wise sum of the three axes.
+
+        Returns
+        -------
+        np.ndarray
+            Sample-wise sum across x, y, z.
+        """
         return np.sum(self.asarray(), axis=0)
 
     def __iter__(self) -> Iterator[np.ndarray]:
+        """Iterate over the x, y, z component arrays."""
         for attr in "xyz":
             yield getattr(self, attr)
 
     def asarray(self) -> np.ndarray:
+        """Return the 3D signal as a (3, N) NumPy array.
+
+        Returns
+        -------
+        np.ndarray
+            Array of shape (3, N) with rows [x, y, z].
+        """
         return np.vstack([d for d in self])
 
 
 @dataclasses.dataclass
 class DaphnetRaw:
+    """Container for a single Daphnet dataset recording.
+
+    Attributes
+    ----------
+    t : np.ndarray
+        Time array in seconds.
+    lumbar_xl : _3DSignal
+        Lumbar accelerometer signals in m/s².
+    thigh_xl : _3DSignal
+        Thigh accelerometer signals in m/s².
+    shank_xl : _3DSignal
+        Shank accelerometer signals in m/s².
+    flag : np.ndarray
+        Annotation flag array (1 = no event, 2 = no FOG, 3 = FOG).
+    """
+
     t: np.ndarray
     lumbar_xl: _3DSignal
     thigh_xl: _3DSignal
@@ -72,9 +161,33 @@ class DaphnetRaw:
     flag: np.ndarray
 
     def get_fs(self) -> float:
+        """Estimate the sampling frequency from the time array.
+
+        Returns
+        -------
+        float
+            Estimated sampling frequency in Hz.
+        """
         return 1 / np.mean(np.diff(self.t))
 
     def get_proxy(self, choice: ProxyChoice) -> np.ndarray:
+        """Return the proxy signal for the given sensor and axis choice.
+
+        Parameters
+        ----------
+        choice : ProxyChoice
+            Desired proxy signal.
+
+        Returns
+        -------
+        np.ndarray
+            Selected proxy signal array.
+
+        Raises
+        ------
+        ValueError
+            If ``choice`` is not a valid ``ProxyChoice``.
+        """
         if choice == ProxyChoice.LUMBAR_X:
             return self.lumbar_xl.x
         elif choice == ProxyChoice.LUMBAR_Y:
@@ -110,11 +223,19 @@ class DaphnetRaw:
 
 
 def get_files_in_dir(path: str, extension: str = ".json") -> list[str]:
-    """!Get all files in a given directory
+    """Return a sorted list of files with the given extension in a directory.
 
-    @param path Directory to check
-    @param extension File extension
-    @return List of all files in path
+    Parameters
+    ----------
+    path : str
+        Directory to search.
+    extension : str, optional
+        File extension filter, by default ".json".
+
+    Returns
+    -------
+    list[str]
+        Sorted list of absolute file paths.
     """
     res = []
     root, _, files = next(os.walk(path))
@@ -126,12 +247,17 @@ def get_files_in_dir(path: str, extension: str = ".json") -> list[str]:
 
 
 def load_daphnet_txt(fn: str) -> DaphnetRaw:
-    """!Load a Daphnet dataset file
+    """Load a Daphnet dataset text file and convert data to SI units.
 
-    This function also converts the data into SI units.
+    Parameters
+    ----------
+    fn : str
+        Path to the Daphnet text file.
 
-    @param fn Filename to be loaded
-    @return Data
+    Returns
+    -------
+    DaphnetRaw
+        Parsed recording with signals converted to SI units (m/s², s).
     """
 
     with open(fn, "r") as fp:

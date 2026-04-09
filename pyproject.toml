@@ -4,10 +4,10 @@ build-backend = "hatchling.build"
 
 [project]
 name = "freeze-index"
-dynamic = ["version"]
+version = "1.0.1"
 description = "Unified freezing of gait index computation"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 license = "BSD-3-Clause"
 keywords = [
   "freezing of gait",
@@ -22,7 +22,6 @@ authors = [
   { name = "Roman Sobkuliak" },
 ]
 classifiers = [
-  "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
@@ -39,9 +38,6 @@ Documentation = "https://github.com/magnesag/freeze-index"
 Issues = "https://github.com/magnesag/freeze-index/issues"
 Source = "https://github.com/magnesag/freeze-index"
 
-[tool.hatch.version]
-path = "freezing/__version__.py"
-
 [tool.hatch.build]
 packages = ["freezing"]
 
@@ -50,7 +46,7 @@ default-args = ["."]
 extra-args = ["-vv"]
 
 [[tool.hatch.envs.hatch-test.matrix]]
-python = ["3.10", "3.11", "3.12", "3.13"]
+python = ["3.11", "3.12", "3.13"]
 
 [tool.pytest.ini_options]
 norecursedirs = ".git venv doc data res"
@@ -70,3 +66,6 @@ tests = ["**/test"]
 
 [tool.coverage.report]
 exclude_lines = ["no cov", "if __name__ == .__main__.:", "if TYPE_CHECKING:"]
+
+[dependency-groups]
+dev = ["pytest>=9.0.3"]
