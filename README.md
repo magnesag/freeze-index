@@ -32,7 +32,7 @@ t, fi = filib.compute_multitaper_fi(x, ...)
 Source repo available at https://github.com/magnesag/freeze-index
 
 ### Requirements
-1. Python >=3.10
+1. Python >=3.11
 2. (optional) Latex -- for paper-ready plots set `USE_TEX=True` in `aux/cfg.py`
 
 ### Daphnet Dataset
