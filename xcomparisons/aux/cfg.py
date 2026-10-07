@@ -8,11 +8,19 @@ Copyright:
     Magnes AG, (C) 2024.
 """
 
+import enum
 import os
 from typing import Callable
 
 import numpy as np
 import matplotlib.pyplot as pltlib
+
+
+class WellSuitedRecording(enum.StrEnum):
+    S02R01 = "S02R01.txt"
+    S03R02 = "S03R02.txt"
+    S06R01 = "S06R01.txt"
+
 
 ## Paths
 FILE_DIR = os.path.normpath(os.path.abspath(os.path.dirname(__file__)))
@@ -37,8 +45,8 @@ MS2S = 1e-3
 MG2MPS2 = G * 1e-3
 
 ## Run options
-RUN_ONLY_ONE = True
-USE_TEX = False
+RUN_ONLY_ONE: WellSuitedRecording | None = WellSuitedRecording.S02R01
+USE_TEX = True
 
 ## Plotting options
 PLOT_RC = {

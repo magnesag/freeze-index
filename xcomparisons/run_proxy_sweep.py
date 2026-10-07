@@ -96,6 +96,10 @@ def compare_fi_for_proxys(
     """
 
     for fn in fns:
+        if os.path.basename(fn) != cfg.RUN_ONLY_ONE:
+            logger.info(f"Skipping {fn}")
+            continue
+
         logger.info(f"Working on {os.path.basename(fn)}")
         data = dataio.load_daphnet_txt(fn)
         fs = data.get_fs()

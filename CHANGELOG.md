@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## V1.0.2
+### Fixed
+- `compute_multitaper_fi()` to actually evaluate on taper-average spectra and not only on last taper.
+
+### Changed
+- `xcomparison.aux.cfg.RUN_ONLY_ONE` logic: from boolean, to either `None` or instance of newly defined `xcomparison.aux.cfg.WellSuitedRecording` enumeration. Members defined in alignment with original publication https://doi.org/10.3389/fneur.2025.1528963.
+
 ## V1.0.1
 ### Added
 - `dev` dependency group (managed through `uv`)

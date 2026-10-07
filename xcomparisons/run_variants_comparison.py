@@ -21,7 +21,6 @@ import numpy as np
 from xcomparisons.aux import cfg, dataio, compare
 from freezing import freezeindex as frz
 
-
 logging.basicConfig(level=logging.INFO, force=True, format=cfg.LOGGING_FMT)
 logger = logging.getLogger(__name__)
 
@@ -100,6 +99,10 @@ def compare_implementations_for_proxy(
     cres = {}
     all_fis = {}
     for fn in fns:
+        if os.path.basename(fn) != cfg.RUN_ONLY_ONE:
+            logger.info(f"Skipping {fn}")
+            continue
+
         try:
             logger.info(f"Working on {os.path.basename(fn)}")
             data = dataio.load_daphnet_txt(fn)

@@ -578,13 +578,13 @@ def compute_multitaper_fi(
         else:
             spectrum += ghost.copy()
 
-    if ghost is None:
+    if ghost is None or spectrum is None:
         raise ValueError("Cannot compute multitaper FI: window list is empty (L=0).")
 
-    locomotor_slc = slice(*[round(nf / (0.5 * fs) * ghost.shape[0]) for nf in F_LOCO])
-    freeze_slc = slice(*[round(nf / (0.5 * fs) * ghost.shape[0]) for nf in F_FREEZE])
-    locomotor_ghost = ghost[locomotor_slc, :].copy()
-    freeze_ghost = ghost[freeze_slc, :].copy()
+    locomotor_slc = slice(*[round(nf / (0.5 * fs) * spectrum.shape[0]) for nf in F_LOCO])
+    freeze_slc = slice(*[round(nf / (0.5 * fs) * spectrum.shape[0]) for nf in F_FREEZE])
+    locomotor_ghost = spectrum[locomotor_slc, :].copy()
+    freeze_ghost = spectrum[freeze_slc, :].copy()
     locomotor_f = np.linspace(*F_LOCO, locomotor_ghost.shape[0])
     freeze_f = np.linspace(*F_FREEZE, freeze_ghost.shape[0])
     locomotor_power = integrate.trapezoid(locomotor_ghost, locomotor_f, axis=0)
