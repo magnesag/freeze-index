@@ -28,11 +28,11 @@ import numpy as np
 from xcomparisons.aux import cfg, dataio, compare
 from freezing import freezeindex as frz
 
-
 logging.basicConfig(level=logging.INFO, force=True, format=cfg.LOGGING_FMT)
 logger = logging.getLogger(__name__)
 
-WITH_MULTI_PROCESSING = True
+# NOTE This is incompatible with "fancy style" plots. Enabling multi processing falls back to default plot style.
+WITH_MULTI_PROCESSING = False
 
 PARAM_RANGES = {
     "dt": np.linspace(2, 10, 17),
